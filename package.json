@@ -23,10 +23,6 @@
     "dist",
     "dev-runtime.js"
   ],
-  "exports": {
-    "import": "./dist/index.mjs",
-    "require": "./dist/index.js"
-  },
   "scripts": {
     "tsc": "tsc --noEmit",
     "build": "tsup src/index.ts --format cjs,esm --dts",
