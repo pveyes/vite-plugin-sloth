@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
-  }
+    "esModuleInterop": true,
+    "declaration": true,
+    "moduleResolution": "node",
+    "lib": ["dom", "es2019"],
+    "outDir": "dist/"
+  },
+  "include": ["src/"]
 }

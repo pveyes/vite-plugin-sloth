@@ -2,7 +2,6 @@
   "name": "vite-plugin-sloth",
   "version": "0.1.1",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "description": "Simple Static Site Generator using HTML template and slot element powered by Vite",
   "keywords": [
@@ -20,12 +19,10 @@
     "element"
   ],
   "files": [
-    "dist",
-    "dev-runtime.js"
+    "dist"
   ],
   "scripts": {
-    "tsc": "tsc --noEmit",
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsc",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {

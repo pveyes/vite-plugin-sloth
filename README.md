@@ -21,12 +21,6 @@ export default defineConfig({
 });
 ```
 
-Add dev-runtime in your JS entry point for HMR support
-
-```js
-import "vite-plugin-sloth/dev-runtime";
-```
-
 ## Usage
 
 Create custom components using HTML template with `id` attribute. The `id` will be used as the name of [custom elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) in dev. This means you have to follow [CE naming convention](https://html.spec.whatwg.org/#valid-custom-element-name) using kebab-case.

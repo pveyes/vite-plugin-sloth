@@ -1,40 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <title>Sloth</title>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <title>Sloth</title>
-  <meta charset="utf-8" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="import" href="./templates/tailwind-card.html" />
+  </head>
 
-  <link rel="stylesheet" href="./style.css" />
-  <link rel="import" href="./templates/tailwind-card.html" />
-</head>
+  <body>
+    <div id="app">
+      <hello-world>
+        <span slot="name">Fatih</span>
+      </hello-world>
 
-<body>
-  <div id="app">
-    <hello-world>
-      <span slot="name">Fatih</span>
-    </hello-world>
+      <section
+        is="hello-world"
+        class="text-pink-500"
+        data-href="https://github.com/pveyes"
+      >
+        <span slot="name">Kalifa</span>
+      </section>
 
-    <section is="hello-world" class="text-pink-500" data-href="https://github.com/pveyes">
-      <span slot="name">Kalifa</span>
-    </section>
+      <tailwind-card>
+        <span slot="name">vite-plugin-sloth</span>
+        <span slot="description"
+          >Simple Static Site Generator using HTML
+          <code class="text-sm">template</code> and
+          <code class="text-sm">slot</code>
+          element.</span
+        >
+      </tailwind-card>
 
-    <tailwind-card data-link="https://github.com/pveyes/vite-plugin-sloth">
-      <span slot="name">vite-plugin-xxx</span>
-      <span slot="description">Simple Static Site Generator using HTML <code class="text-sm">template</code> and
-        <code class="text-sm">slot</code>
-        element.</span>
-    </tailwind-card>
-  </div>
+      <aside is="tailwind-card" data-link="https://github.com/pveyes/htmr">
+        <span slot="name">htmr</span>
+        <span slot="description"
+          >Simple and lightweight (&lt; 2kB) HTML string to React element
+          conversion library</span
+        >
+      </aside>
+    </div>
 
-  <template id="hello-world">
-    <h1>
-      <a data-href href="https://fatihkalifa.com">Hello, <slot name="name">{name}</slot></a>
-    </h1>
-  </template>
-  <script type="module" src="/main.js"></script>
-</body>
-
+    <template id="hello-world">
+      <h1>
+        <a data-href href="https://fatihkalifa.com"
+          >Hello, <slot name="name">{name}</slot></a
+        >
+      </h1>
+    </template>
+    <script type="module" src="/main.js"></script>
+  </body>
 </html>

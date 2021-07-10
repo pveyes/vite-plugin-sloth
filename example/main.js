@@ -1,1 +1,1 @@
-import '../dev-runtime';
+// no JS needed

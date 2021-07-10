@@ -1,27 +1,60 @@
-import { promises as fs } from "fs";
+import fs, { promises as fsp } from "fs";
 import path from "path";
-import { Plugin, createLogger } from "vite";
+import { Plugin } from "vite";
 import cheerio, { Cheerio } from "cheerio";
-
-const logger = createLogger("info", {
-  prefix: "sloth",
-});
+import chalk from "chalk";
 
 interface Options {
   flattenSlot?: boolean;
 }
 
+const runtimePublicPath = "/@sloth-refresh";
+const runtimeFilePath = require.resolve("../dev-runtime");
+const runtimeCode = "\n" + fs.readFileSync(runtimeFilePath, "utf8");
+
+console.log("path", runtimeFilePath);
+
+const preamble = `import "__BASE__${runtimePublicPath.slice(1)}"`;
+
 export default (options: Options = {}): Plugin => {
+  let isBuild = false;
+  let base = "/";
+
   return {
     name: "sloth",
-    transformIndexHtml: async (html, { server }) => {
-      // use custom-elements to support HMR for external templates in dev
-      if (server) {
-        // TODO: inject dev-runtime.js automatically
-        return;
+    configResolved: (config) => {
+      isBuild = config.command === "build" || config.isProduction;
+      base = config.base;
+    },
+    transformIndexHtml: (html) => {
+      if (isBuild) {
+        return transformHtml(html, options);
       }
 
-      return transformHtml(html, options);
+      // use custom-elements to support HMR for external templates in dev
+      return {
+        html,
+        tags: [
+          {
+            tag: "script",
+            attrs: {
+              type: "module",
+            },
+            injectTo: "body",
+            children: preamble.replace("__BASE__", base),
+          },
+        ],
+      };
+    },
+    resolveId(id) {
+      if (id === runtimePublicPath) {
+        return id;
+      }
+    },
+    load(id) {
+      if (id === runtimePublicPath) {
+        return runtimeCode;
+      }
     },
     handleHotUpdate({ file, server }) {
       if (file.endsWith(".html")) {
@@ -74,7 +107,7 @@ async function transformHtml(html: string, options: Options) {
       .toArray()
       .map(async (raw) => {
         const template = raw.path
-          ? await fs.readFile(raw.path, "utf8")
+          ? await fsp.readFile(raw.path, "utf8")
           : raw.content;
 
         const $$ = cheerio.load(template);
@@ -174,11 +207,12 @@ function compileContent(
             console.log();
           }
 
-          logger.warn(
-            `Template ${options.name} requires data-${key} but it's missing`,
-            {
-              timestamp: true,
-            }
+          console.warn(
+            chalk.yellowBright("[sloth]") +
+              " " +
+              chalk.yellow(
+                `Template \`${options.name}\` requires \`data-${key}\` but it's missing`
+              )
           );
         } else {
           const targetAttribute = (elementData[key] as any) || key;
