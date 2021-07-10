@@ -19,7 +19,8 @@
     "element"
   ],
   "files": [
-    "dist"
+    "dist",
+    "dev-runtime.js"
   ],
   "scripts": {
     "build": "tsc",

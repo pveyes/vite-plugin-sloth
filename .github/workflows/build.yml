@@ -1,0 +1,55 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+
+name: CI
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12"
+
+      - uses: bahmutov/npm-install@v1
+      - name: Generate build artifact
+        run: yarn build
+
+      - name: Store artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-dist
+          path: dist
+          retention-days: 1
+
+  build-example:
+    name: Build Example
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-dist
+          path: dist
+
+      - uses: bahmutov/npm-install@v1
+      - name: Prepare linked dependency
+        run: yarn link
+
+      - uses: bahmutov/npm-install@v1
+        with:
+          working-directory: example
+
+      - name: Link dependency
+        run: yarn link vite-plugin-sloth
+        working-directory: example
+
+      - name: Build example to static
+        run: yarn build
+        working-directory: example
