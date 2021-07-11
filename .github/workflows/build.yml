@@ -53,3 +53,11 @@ jobs:
       - name: Build example to static
         run: yarn build
         working-directory: example
+
+      - name: Validate build output
+        run: yarn test
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: example-dist
+          path: example/dist

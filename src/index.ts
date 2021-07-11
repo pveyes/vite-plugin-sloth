@@ -89,7 +89,7 @@ async function transformHtml(html: string, options: Options) {
   compileTemplates(templates, $, options.flattenSlot);
 
   // cleanup: remove all inline templates
-  $("templates").remove();
+  $("template").remove();
   return $.html().trim();
 }
 
