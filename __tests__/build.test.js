@@ -64,7 +64,7 @@ test("use default value to make data-var optional", () => {
   );
 });
 
-test("can bind variable deep in tree over multiple custom elements", () => {
+test("can bind variable deep in the tree over multiple custom elements", () => {
   const tw = $('[data-template="tailwind-card"]');
 
   expect($(tw.get(0)).find("a").attr("href")).toMatchInlineSnapshot(
@@ -76,9 +76,9 @@ test("can bind variable deep in tree over multiple custom elements", () => {
   );
 });
 
-test("no trace of variable bindings on build output", () => {
+test("no trace of variable bindings in build output", () => {
   const bindings = $("*").filter((_, el) =>
     Object.keys(el.attribs).some((attr) => attr.startsWith("data-var"))
   );
-  expect(bindings.map((_, el) => e.tagName).toArray()).toEqual([]);
+  expect(bindings.map((_, el) => el.tagName).toArray()).toEqual([]);
 });
