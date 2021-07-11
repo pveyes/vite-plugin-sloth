@@ -57,7 +57,7 @@ jobs:
       - name: Validate build output
         run: yarn test
 
-      - name: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
           name: example-dist
           path: example/dist
