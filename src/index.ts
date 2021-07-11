@@ -1,7 +1,7 @@
 import fs, { promises as fsp } from "fs";
 import path from "path";
 import { Plugin } from "vite";
-import cheerio, { Cheerio } from "cheerio";
+import cheerio, { Cheerio, CheerioAPI } from "cheerio";
 import chalk from "chalk";
 
 interface Options {
@@ -22,6 +22,7 @@ export default (options: Options = {}): Plugin => {
 
   return {
     name: "sloth",
+    enforce: "pre",
     configResolved: (config) => {
       isBuild = config.command === "build" || config.isProduction;
       base = config.base;
@@ -72,7 +73,31 @@ export default (options: Options = {}): Plugin => {
 
 async function transformHtml(html: string, options: Options) {
   const $ = cheerio.load(html);
-  const externalTemplates: Template[] = await Promise.all(
+  const externalTemplates = await getExternalTemplates($);
+
+  const inlineTemplates = $("template")
+    .map((_, template) => {
+      return {
+        name: template.attribs.id,
+        content: $(template).html(),
+      };
+    })
+    .toArray();
+
+  const templates = externalTemplates.concat(inlineTemplates);
+
+  compileTemplates(templates, $, options.flattenSlot);
+
+  // cleanup: remove all inline templates
+  $("templates").remove();
+  return $.html().trim();
+}
+
+async function getExternalTemplates(
+  $: CheerioAPI,
+  basePath = ""
+): Promise<Template[]> {
+  const templates = await Promise.all(
     $("link")
       .filter((_, link) => {
         return (
@@ -86,50 +111,40 @@ async function transformHtml(html: string, options: Options) {
         // as this is dev only import
         $(link).remove();
 
-        try {
-          if (link.attribs.href.startsWith("data:")) {
-            const template = Buffer.from(
-              link.attribs.href.replace("data:text/html;base64,", ""),
-              "base64"
-            ).toString();
-            return {
-              content: template,
-            };
-          }
-
-          return {
-            path: path.join(process.cwd(), link.attribs.href),
-          };
-        } catch (err) {
-          return null;
-        }
+        return link.attribs.href.replace(/^\/\//, "");
       })
       .toArray()
-      .map(async (raw) => {
-        const template = raw.path
-          ? await fsp.readFile(raw.path, "utf8")
-          : raw.content;
+      .map(async (rawPath) => {
+        const templateHTML = await fsp.readFile(
+          path.resolve(process.cwd(), basePath, rawPath),
+          "utf8"
+        );
+        const $$ = cheerio.load(templateHTML);
 
-        const $$ = cheerio.load(template);
-        return {
+        const template = {
           name: $$("template").attr("id"),
           content: $$("template").html(),
         };
+
+        const imports = $$('link[rel="import"]');
+        if (imports.length > 0) {
+          const basePath = rawPath.split("/").slice(0, -1).join("/");
+          const templates = await getExternalTemplates($$, basePath);
+          return templates.concat([template]);
+        }
+
+        return template;
       })
-      .filter(Boolean)
   );
 
-  const inlineTemplates = $("template")
-    .map((_, template) => {
-      return {
-        name: template.attribs.id,
-        content: $(template).html(),
-      };
-    })
-    .toArray();
+  return templates.flat().filter(Boolean);
+}
 
-  const templates = externalTemplates.concat(inlineTemplates);
-
+function compileTemplates(
+  templates: Template[],
+  $: CheerioAPI,
+  flattenSlot = false
+) {
   templates.forEach((template) => {
     const customElements = $(`${template.name}`);
     const isAttributeElements = $(`[is="${template.name}"]`);
@@ -138,8 +153,8 @@ async function transformHtml(html: string, options: Options) {
       const target = $(el);
       const content = compileContent(target, template.content, {
         name: template.name,
-        flattenSlot: options.flattenSlot,
         variables: target.data(),
+        flattenSlot,
       });
 
       const wrapper = $("<div></div>");
@@ -152,8 +167,8 @@ async function transformHtml(html: string, options: Options) {
       const target = $(el);
       const content = compileContent(target, template.content, {
         name: template.name,
-        flattenSlot: options.flattenSlot,
         variables: target.data(),
+        flattenSlot,
       });
       target.removeAttr("is");
       target.attr("data-template", template.name);
@@ -161,9 +176,14 @@ async function transformHtml(html: string, options: Options) {
     });
   });
 
-  // cleanup: remove all inline templates
-  $("templates").remove();
-  return $.html().trim();
+  const uncompiled = templates.reduce((total, template) => {
+    return total + $(`${template.name},[is="${template.name}"]`).length;
+  }, 0);
+
+  // multi-pass compilation
+  if (uncompiled > 0) {
+    compileTemplates(templates, $, flattenSlot);
+  }
 }
 
 let newLineInserted = false;

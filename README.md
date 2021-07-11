@@ -49,10 +49,12 @@ In build-time, the component will be compiled like this:
 
 You can also reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
 
+**Due to how `vite` handle link `href` in main index.html, you need to use double slash so vite doesn't transform this**
+
 ```html
 <html>
   <head>
-    <link rel="import" href="./templates/hello-world.html" />
+    <link rel="import" href="//templates/hello-world.html" />
   </head>
 
   <body>
@@ -73,6 +75,21 @@ This is the result
     </div>
   </body>
 </html>
+```
+
+You can also includes external templates inside another external template. Here, we don't have the same limitation, so you can use normal directory references like `./` or `../`
+
+```html
+<!-- file: $root/templates/hello-world.html -->
+
+<!-- this will be resolved to $root/templates/heading-text.html -->
+<link rel="import" href="./heading-text.html" />
+<!-- this will be resolved to $root/heading-text.html -->
+<link rel="import" href="../another-component.html" />
+
+<template id="hello-world">
+  <heading-text>It works!</heading-text>
+</template>
 ```
 
 ### Polymorphic Element
