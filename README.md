@@ -134,14 +134,14 @@ It will then be compiled into:
 
 #### Attributes
 
-You can use variable inside HTML attributes by using data attribute.
+You can use variable inside HTML attributes by using data attribute with `var-` prefix.
 
 Template can define variable placeholder by writing data attribute in any element that needs it.
 
 ```html
 <template id="hello-world">
   <h1>
-    <a data-href>It works!</a>
+    <a data-var-href>It works!</a>
   </h1>
 </template>
 ```
@@ -149,10 +149,10 @@ Template can define variable placeholder by writing data attribute in any elemen
 To pass the variable, you use the same data attribute
 
 ```html
-<hello-world data-href="https://fatihkalifa.com"></hello-world>
+<hello-world data-var-href="https://fatihkalifa.com"></hello-world>
 ```
 
-By default `sloth` will automatically fill attribute with the same name with the data attribute. For example `data-href` will set `href` attribute. So the above example compiles into:
+By default `sloth` will automatically fill attribute with the same name with the data attribute. For example `data-var-href` will set `href` attribute. So the above example compiles into:
 
 ```html
 <div data-template="hello-world">
@@ -168,7 +168,7 @@ You can also mark data as optional by providing fallback value using the same at
 <!-- template -->
 <template id="hello-world">
   <h1>
-    <a data-href href="http://data.href/empty">It works!</a>
+    <a data-var-href href="http://data.href/empty">It works!</a>
   </h1>
 </template>
 
@@ -183,18 +183,18 @@ You can also mark data as optional by providing fallback value using the same at
 </div>
 ```
 
-If you want to change how data attribute maps to different attribute, pass attribute name to the data attribute. For example, `data-link="href"` means the component read `data-link` attribute from parent element, but will be used as `href`.
+If you want to change how data attribute maps to different attribute, pass attribute name to the data attribute. For example, `data-var-link="href"` means the component read `data-var-link` attribute from parent element, but will be used as `href`.
 
 ```html
 <!-- template -->
 <template id="hello-world">
   <h1>
-    <a data-link="href">It works!</a>
+    <a data-var-link="href">It works!</a>
   </h1>
 </template>
 
 <!-- usage: pass the same `data-link` attribute -->
-<hello-world data-link="https://github.com/pveyes"></hello-world>
+<hello-world data-var-link="https://github.com/pveyes"></hello-world>
 
 <!-- result -->
 <div data-template="hello-world">

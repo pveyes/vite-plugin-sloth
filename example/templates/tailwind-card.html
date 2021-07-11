@@ -31,7 +31,7 @@
                 sm:text-lg sm:leading-7
               "
             >
-              <p class="text-lg">
+              <p class="text-lg" data>
                 <slot name="description">{description}</slot>
               </p>
               <div
@@ -44,7 +44,7 @@
                 "
               >
                 <p>Love <slot name="name">{name}</slot>?</p>
-                <star-link data-link="data-link"></star-link>
+                <star-link data-var-link></star-link>
               </div>
             </div>
           </div>
