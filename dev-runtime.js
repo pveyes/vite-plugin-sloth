@@ -98,7 +98,7 @@ if (hmr) {
  * @param {string?} root
  * @param {string?} fromName
  */
-async function fetchExternalDependencies(
+function fetchExternalDependencies(
   paths,
   root = "",
   fromName = ROOT_VERTEX_NAME
