@@ -49,7 +49,7 @@ In build-time, the component will be compiled like this:
 
 You can also reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
 
-**Due to how `vite` handle link `href` in main index.html, you need to use double slash so vite doesn't transform this**
+Due to how `vite` handle link `href` in main index.html, **you need to prefix the href value with a double slash** so vite left the href value as is. This is important as sloth will manage the HTML dependency graph by itself.
 
 ```html
 <html>
@@ -94,7 +94,7 @@ You can also includes external templates inside another external template.
 
 ### Polymorphic Element
 
-By default custom element will be replaced by a `div` with `data-template` for easier inspection. If you want to change the wrapper element, you can use [`is` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/is)
+By default custom element will be replaced by a `div` with `data-template` for easier inspection. If you want to change the wrapper element, you can use [`is` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/is) in any HTML element.
 
 ```html
 <section is="hello-world"></section>
@@ -102,11 +102,11 @@ By default custom element will be replaced by a `div` with `data-template` for e
 
 ### Variables
 
-There are 2 use cases for using variables: child element and HTML attribute.
+There are 2 use cases for using variables: to be rendered as visible text, and as HTML attribute.
 
-#### Children
+#### Text
 
-To use variable as child element, you use `slot` element. First template must define which slot is available. Slot have `name` attribute that will be used to reference later
+To use variable as text / child element, you use `slot` element. Template can define however many slot they need. Slot have `name` attribute that will be used to reference later. `name` in slot is scoped by its template, so different template can have slot with same `name`.
 
 ```html
 <template id="hello-world">
@@ -114,7 +114,7 @@ To use variable as child element, you use `slot` element. First template must de
 </template>
 ```
 
-Note that you don't actually need to add `{name}` in the `slot` element, it's just there for easier debugging in case you forgot to add matching slot. You can use any placeholder value.
+Note that you don't actually need to add `{name}` as children in the `slot` element, it's just there for easier debugging in case you forgot to add matching slot. You can use any placeholder value.
 
 You can then create matching slot by rendering child element (usually using `span` element as it's an inline element, but you can use anything) with `slot` attribute with the same name:
 
