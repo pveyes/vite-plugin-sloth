@@ -77,15 +77,15 @@ This is the result
 </html>
 ```
 
-You can also includes external templates inside another external template. Here, we don't have the same limitation, so you can use normal directory references like `./` or `../`
+You can also includes external templates inside another external template.
 
 ```html
 <!-- file: $root/templates/hello-world.html -->
 
 <!-- this will be resolved to $root/templates/heading-text.html -->
-<link rel="import" href="./heading-text.html" />
+<link rel="import" href="//./heading-text.html" />
 <!-- this will be resolved to $root/heading-text.html -->
-<link rel="import" href="../another-component.html" />
+<link rel="import" href="//../another-component.html" />
 
 <template id="hello-world">
   <heading-text>It works!</heading-text>

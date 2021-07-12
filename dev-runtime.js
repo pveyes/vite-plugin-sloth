@@ -94,20 +94,51 @@ if (hmr) {
 }
 
 /**
+ * @param {string} root
+ * @param {string} path;
+ * @return {string}
+ */
+function resolveAbsolutePath(root, path) {
+  if (path.indexOf("./") === -1) {
+    return root + path;
+  }
+
+  const relativePath = path.slice(path.indexOf("./") + 1);
+  const upDirLength = path.split("/").filter((p) => p === "..").length;
+
+  const rootSegment = root.split("/").filter(Boolean);
+  if (upDirLength > rootSegment.length) {
+    throw new Error("import outside of scope " + path);
+  }
+
+  return (
+    rootSegment.slice(0, rootSegment.length - upDirLength).join("/") +
+    relativePath
+  );
+}
+
+/**
  * @param {HTMLLinkElement[]} paths
  * @param {string?} root
  * @param {string?} fromName
  */
 function fetchExternalDependencies(
   paths,
-  root = "",
+  root = "/",
   fromName = ROOT_VERTEX_NAME
 ) {
   return Promise.all(
     paths.map(async (link) => {
-      const path = link.href;
-      const url = new URL(path);
-      const target = root + url.pathname;
+      const url = new URL(link.href);
+
+      if (url.hostname === "localhost") {
+        throw new Error(
+          "You need to use double slash to prefix your HTML imports"
+        );
+      }
+
+      const path = link.href.replace("http://", "");
+      const target = resolveAbsolutePath(root, path);
       const templateHTML = await fetch(target).then((res) => res.text());
       const div = document.createElement("div");
       div.innerHTML = templateHTML;
@@ -177,20 +208,33 @@ function replaceCustomElement(templateId, fragment, root) {
  * @param {DocumentFragment} fragment
  */
 function renderPolymorphicElement(el, templateId, fragment) {
+  /**
+   * @type {Record<string, string>}
+   */
+  const vars = Object.create(null);
+  Array.from(el.attributes)
+    .filter((attr) => attr.name.startsWith("data-var-"))
+    .forEach((attr) => {
+      vars[attr.name] = attr.value;
+    });
+
+  // we need to bind variables before appending child to the root element,
+  // but we don't want to create new wrapper so we use temporary div element
+  const tempRoot = document.createElement("div");
+  tempRoot.appendChild(fragment.cloneNode(true));
+  bindVariables(tempRoot, vars, templateId);
+
   if (el.shadowRoot) {
     // re-renders
     el.shadowRoot.replaceChild(
-      fragment.cloneNode(true),
+      tempRoot.children.item(0),
       el.shadowRoot.children[0]
     );
-    bindVariables(el.shadowRoot, el, templateId);
     return;
   }
 
   const root = el.attachShadow({ mode: "open" });
-  root.appendChild(fragment.cloneNode(true));
-
-  bindVariables(root, el, templateId);
+  root.appendChild(tempRoot.children.item(0));
 
   injectGlobalStyle(root);
   window.addEventListener("load", () => {
@@ -203,10 +247,25 @@ function renderPolymorphicElement(el, templateId, fragment) {
  * @param {DocumentFragment} fragment
  */
 function createCustomElement(templateId, fragment) {
+  const observedAttributes = Array.from(
+    new Set(
+      Array.from(fragment.querySelectorAll("*")).flatMap((el) => {
+        return Array.from(el.attributes)
+          .filter((attr) => attr.name.startsWith("data-var-"))
+          .map((attr) => attr.name);
+      })
+    )
+  );
+
   return class extends HTMLElement {
+    static get observedAttributes() {
+      return observedAttributes;
+    }
+
     constructor() {
       super();
       this.root = this.attachShadow({ mode: "open" });
+      this.vars = {};
     }
 
     connectedCallback() {
@@ -220,6 +279,30 @@ function createCustomElement(templateId, fragment) {
       window.removeEventListener("load", this.setup);
     }
 
+    /**
+     * @param {string} variableKey
+     * @param {any} _
+     * @param {string} value
+     */
+    attributeChangedCallback(variableKey, _, value) {
+      if (!value) {
+        return;
+      }
+
+      const defaultTargetAttribute = variableKey.replace("data-var-", "");
+      const listeners = this.root.querySelectorAll(`[${variableKey}]`);
+
+      if (listeners.length === 0) {
+        this.vars[variableKey] = value;
+      }
+
+      listeners.forEach((el) => {
+        const targetAttribute =
+          el.getAttribute(variableKey) || defaultTargetAttribute;
+        el.setAttribute(targetAttribute, value);
+      });
+    }
+
     setup = () => {
       injectGlobalStyle(this.root);
     };
@@ -229,7 +312,7 @@ function createCustomElement(templateId, fragment) {
       wrapper.setAttribute("data-template", templateId);
       wrapper.appendChild(fragment.cloneNode(true));
 
-      bindVariables(wrapper, this, templateId);
+      bindVariables(wrapper, this.vars, templateId);
 
       if (this.root.children.length === 0) {
         this.root.appendChild(wrapper);
@@ -241,41 +324,53 @@ function createCustomElement(templateId, fragment) {
 }
 
 /**
- * @param {Element | ShadowRoot} wrapper
- * @param {HTMLOrSVGElement} instance
- * @param {string} templateName
+ * @param {Element | ShadowRoot} root
+ * @param {Record<string, string>} vars
+ * @param {string} templateId
  */
-function bindVariables(wrapper, instance, templateName) {
-  wrapper.querySelectorAll("*").forEach((el) => {
-    const data = Array.from(el.attributes).flatMap((attr) => {
-      if (attr.name.startsWith("data-") && attr.name !== "data-template") {
-        return {
-          key: attr.name.replace("data-", ""),
-          value: attr.value,
-        };
-      }
-      return [];
-    });
+function bindVariables(root, vars, templateId) {
+  root.querySelectorAll("*").forEach((el) => {
+    const subscribedVariables = Array.from(el.attributes)
+      .filter((attr) => attr.name.startsWith("data-var-"))
+      .map((attr) => attr.name);
 
-    if (data.length === 0) {
+    if (subscribedVariables.length === 0) {
       return;
     }
 
-    data.forEach(({ key, value: targetAttribute }) => {
-      const attr = targetAttribute || key;
-      const value = instance.dataset[key];
-      const defaultValue = el.attributes.getNamedItem(attr);
-      if (value) {
-        el.setAttribute(attr, value);
-        el.removeAttribute(`data-${key}`);
+    subscribedVariables.forEach((variableKey) => {
+      const passedValue = vars[variableKey];
+      const defaultTargetAttribute = variableKey.replace("data-var-", "");
+      const defaultValue = el.getAttribute(defaultTargetAttribute);
+
+      if (passedValue) {
+        if (isCustomElement(el)) {
+          // custom elements only propagate attributes because the actual attribute
+          // will be set in native DOM nodes.
+          const targetAttribute = el.getAttribute(variableKey) || variableKey;
+          el.setAttribute(targetAttribute, vars[variableKey]);
+        } else {
+          const targetAttribute =
+            el.getAttribute(variableKey) || defaultTargetAttribute;
+          el.setAttribute(targetAttribute, vars[variableKey]);
+          el.removeAttribute(variableKey);
+        }
       } else if (!defaultValue) {
         console.warn(
-          `[sloth] Template \`${templateName}\` requires \`data-${key}\` but it's missing`,
+          `[sloth] Template \`${templateId}\` requires \`${variableKey}\` but it's missing.`,
           { el }
         );
       }
     });
   });
+}
+
+/**
+ * @param {Element} el
+ * @return {boolean}
+ */
+function isCustomElement(el) {
+  return el.tagName.includes("-") || !!el.attributes.getNamedItem("is");
 }
 
 /**
