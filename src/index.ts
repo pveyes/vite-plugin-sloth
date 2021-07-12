@@ -1,6 +1,7 @@
 import fs, { promises as fsp } from "fs";
 import path from "path";
 import { Plugin } from "vite";
+import type { Element as DOMElement } from "domhandler";
 import cheerio, { Cheerio, CheerioAPI } from "cheerio";
 import chalk from "chalk";
 
@@ -11,8 +12,6 @@ interface Options {
 const runtimePublicPath = "/@sloth-refresh";
 const runtimeFilePath = require.resolve("../dev-runtime");
 const runtimeCode = "\n" + fs.readFileSync(runtimeFilePath, "utf8");
-
-console.log("path", runtimeFilePath);
 
 const preamble = `import "__BASE__${runtimePublicPath.slice(1)}"`;
 
@@ -146,14 +145,14 @@ function compileTemplates(
   flattenSlot = false
 ) {
   templates.forEach((template) => {
-    const customElements = $(`${template.name}`);
+    const customElements: Cheerio<DOMElement> = $(`${template.name}`) as any;
     const isAttributeElements = $(`[is="${template.name}"]`);
 
     customElements.each((_, el) => {
       const target = $(el);
       const content = compileContent(target, template.content, {
         name: template.name,
-        variables: target.data(),
+        variables: getVariables(el),
         flattenSlot,
       });
 
@@ -164,14 +163,22 @@ function compileTemplates(
     });
 
     isAttributeElements.each((_, el) => {
+      const variables = getVariables(el);
       const target = $(el);
       const content = compileContent(target, template.content, {
         name: template.name,
-        variables: target.data(),
+        variables,
         flattenSlot,
       });
+
       target.removeAttr("is");
       target.attr("data-template", template.name);
+
+      // remove all variables from root element
+      for (const v in variables) {
+        target.attr(`data-var-${v}`, null);
+      }
+
       target.html(content);
     });
   });
@@ -186,12 +193,25 @@ function compileTemplates(
   }
 }
 
+function getVariables(el: DOMElement): Record<string, string> {
+  const data = el.attribs;
+  const variables = Object.create(null);
+  for (const key in data) {
+    if (key.startsWith("data-var-")) {
+      const varKey = key.replace(/^data-var-/, "").toLowerCase();
+      variables[varKey] = data[key];
+    }
+  }
+
+  return variables;
+}
+
 let newLineInserted = false;
 
 interface CompileOptions {
   name: string;
   flattenSlot?: boolean;
-  variables: Record<string, any>;
+  variables: Record<string, string>;
 }
 
 function compileContent(
@@ -212,34 +232,53 @@ function compileContent(
   // compile variables
   $("*")
     .filter((_, el) => {
-      const data = $(el).data();
-      return Object.keys(data).length > 0;
+      const element: DOMElement = el as any;
+      return Object.keys(element.attribs).some((key) =>
+        key.startsWith("data-var-")
+      );
     })
-    .each((_, element) => {
+    .each((_, el) => {
+      const element: DOMElement = el as any;
+      // @ts-ignore
       const $el = $(element);
-      const elementData = $el.data();
-      Object.keys(elementData).forEach((key) => {
-        if (variables[key] === undefined && !$el.attr(key)) {
-          // vite uses writeLine without newline when logging rendered chunk
-          // @see https://github.com/vitejs/vite/blob/eb66b4350c635fb4f2ef2e8a9eb50958cde73743/packages/vite/src/node/plugins/reporter.ts#L126
-          if (!newLineInserted) {
-            newLineInserted = true;
-            console.log();
-          }
+      Object.keys(element.attribs)
+        .filter((key) => key.startsWith("data-var-"))
+        .forEach((key) => {
+          const varKey = key.replace(/^data-var-/, "");
 
-          console.warn(
-            chalk.yellowBright("[sloth]") +
-              " " +
-              chalk.yellow(
-                `Template \`${options.name}\` requires \`data-${key}\` but it's missing`
-              )
-          );
-        } else {
-          const targetAttribute = (elementData[key] as any) || key;
-          $el.attr(`data-${key}`, null);
-          $el.attr(targetAttribute, variables[key]);
-        }
-      });
+          const isCustomElement =
+            element.tagName.includes("-") || element.attribs.is;
+          const isVariablePassed = Boolean(variables[varKey]);
+          const hasFallbackValue = Boolean(element.attribs[varKey]);
+
+          if (isVariablePassed || hasFallbackValue) {
+            if (isCustomElement) {
+              const targetAttribute = element.attribs[key] || key;
+              $el.attr(targetAttribute, variables[varKey]);
+            } else {
+              const targetAttribute = element.attribs[key] || varKey;
+              $el.attr(key, null);
+              $el.attr(targetAttribute, variables[varKey]);
+            }
+          } else {
+            // log warning
+            // vite uses writeLine without newline when logging rendered chunk
+            // @see https://github.com/vitejs/vite/blob/eb66b4350c635fb4f2ef2e8a9eb50958cde73743/packages/vite/src/node/plugins/reporter.ts#L126
+            if (!newLineInserted) {
+              newLineInserted = true;
+              console.log();
+            }
+
+            console.warn(
+              chalk.yellowBright("[sloth]") +
+                " " +
+                chalk.yellow(
+                  `Template \`${options.name}\` requires \`data-var-${varKey}\` but it's missing`
+                )
+            );
+            $el.attr(key, null);
+          }
+        });
     });
 
   return $.html();

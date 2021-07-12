@@ -19,7 +19,7 @@
       <section
         is="hello-world"
         class="text-pink-500"
-        data-href="https://github.com/pveyes"
+        data-var-href="https://github.com/pveyes"
       >
         <span slot="name">Kalifa</span>
       </section>
@@ -34,7 +34,7 @@
         >
       </tailwind-card>
 
-      <aside is="tailwind-card" data-link="https://github.com/pveyes/htmr">
+      <aside is="tailwind-card" data-var-link="https://github.com/pveyes/htmr">
         <span slot="name">htmr</span>
         <span slot="description"
           >Simple and lightweight (&lt; 2kB) HTML string to React element
@@ -45,7 +45,7 @@
 
     <template id="hello-world">
       <h1>
-        <a data-href href="https://fatihkalifa.com"
+        <a data-var-href href="https://fatihkalifa.com"
           >Hello, <slot name="name">{name}</slot></a
         >
       </h1>

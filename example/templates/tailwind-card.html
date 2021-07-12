@@ -1,4 +1,4 @@
-<link rel="import" href="./star-link.html" />
+<link rel="import" href="//../templates/star-link.html" />
 
 <template id="tailwind-card">
   <div class="bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
@@ -31,7 +31,7 @@
                 sm:text-lg sm:leading-7
               "
             >
-              <p class="text-lg">
+              <p class="text-lg" data>
                 <slot name="description">{description}</slot>
               </p>
               <div
@@ -44,7 +44,7 @@
                 "
               >
                 <p>Love <slot name="name">{name}</slot>?</p>
-                <star-link data-link="data-link"></star-link>
+                <star-link data-var-link></star-link>
               </div>
             </div>
           </div>

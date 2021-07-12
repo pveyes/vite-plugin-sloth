@@ -35,3 +35,50 @@ test("all polymorphic elements must be resolved", () => {
     .toArray();
   expect(unresolvedPolymorphicElements).toEqual([]);
 });
+
+test("render correct slot: hello-world", () => {
+  const hw = $('[data-template="hello-world"]');
+  const first = $(hw.get(0));
+  const second = $(hw.get(1));
+
+  expect(first.find("a").html()).toMatchInlineSnapshot(`"Hello, Fatih"`);
+  expect(second.find("a").html()).toMatchInlineSnapshot(`"Hello, Kalifa"`);
+});
+
+test("use data-var for variable-attribute binding", () => {
+  const hw = $('[data-template="hello-world"]');
+  const first = $(hw.get(0));
+
+  expect(first.find("a").attr("href")).toMatchInlineSnapshot(
+    `"https://fatihkalifa.com"`
+  );
+});
+
+test("use default value to make data-var optional", () => {
+  const hw = $('[data-template="hello-world"]');
+  const second = $(hw.get(1));
+
+  // passed variable
+  expect(second.find("a").attr("href")).toMatchInlineSnapshot(
+    `"https://github.com/pveyes"`
+  );
+});
+
+test("can bind variable deep in the tree over multiple custom elements", () => {
+  const tw = $('[data-template="tailwind-card"]');
+
+  expect($(tw.get(0)).find("a").attr("href")).toMatchInlineSnapshot(
+    `undefined`
+  );
+
+  expect($(tw.get(1)).find("a").attr("href")).toMatchInlineSnapshot(
+    `"https://github.com/pveyes/htmr"`
+  );
+});
+
+test("no trace of variable bindings in build output", () => {
+  const bindings = $("*").filter((_, el) =>
+    Object.keys(el.attribs).some((attr) => attr.startsWith("data-var"))
+  );
+  expect(bindings.map((_, el) => el.tagName).toArray()).toEqual([]);
+});
