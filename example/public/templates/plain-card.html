@@ -1,0 +1,21 @@
+<style>
+  .card {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+    padding: 10px;
+  }
+
+  h3 {
+    font-size: max(10vw, 10vh);
+  }
+</style>
+
+<template id="plain-card">
+  <div class="card">
+    <h3>
+      <slot name="title">{title}</slot>
+    </h3>
+    <p>
+      <slot name="description">{description}</slot>
+    </p>
+  </div>
+</template>
