@@ -3,4 +3,12 @@ interface HTMLElement {
   disconnectedCallback(): void;
 }
 
+interface CSSStyleSheet {
+  replaceSync(cssText: string): void;
+}
+
+interface ShadowRoot {
+  adoptedStyleSheets: CSSStyleSheet[];
+}
+
 interface PolymorphicElement extends Element, HTMLOrSVGElement {}

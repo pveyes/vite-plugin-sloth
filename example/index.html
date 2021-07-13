@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="stylesheet" href="./style.css" />
-    <link rel="import" href="//templates/tailwind-card.html" />
+    <link rel="import" href="/templates/tailwind-card.html" />
+    <link rel="import" href="/templates/plain-card.html" />
   </head>
 
   <body>
@@ -23,6 +24,11 @@
       >
         <span slot="name">Kalifa</span>
       </section>
+
+      <plain-card>
+        <span slot="title">Plain Card</span>
+        <span slot="description">This is a plain card using scoped style</span>
+      </plain-card>
 
       <tailwind-card>
         <span slot="name">vite-plugin-sloth</span>

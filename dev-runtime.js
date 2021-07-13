@@ -6,7 +6,8 @@
  */
 
 /**
- * @type {Map<string, DocumentFragment>}
+ * @typedef {{ fragment: DocumentFragment, style?: HTMLStyleElement }} ElementTemplate
+ * @type {Map<string, ElementTemplate>}
  */
 const templateCache = new Map();
 
@@ -32,6 +33,7 @@ if (hmr) {
     const div = document.createElement("div");
     div.innerHTML = templateHTML;
     const template = div.querySelector("template");
+    const style = div.querySelector("style");
 
     /** @type {Array<Document|ShadowRoot>} */
     let roots = [document];
@@ -47,20 +49,17 @@ if (hmr) {
       }
     });
 
-    templateCache.set(template.id, template.content);
-
+    templateCache.set(template.id, { fragment: template.content, style });
     roots.forEach((root) => {
-      replaceCustomElement(template.id, template.content, root);
+      replaceCustomElement(template.id, root);
     });
   });
 
   // Setup custom elements from external templates.
   // Assign the promise so we can wait if some polymorphic elements
   // uses external template
-  const externalTemplatesReady = fetchExternalDependencies(
-    Array.from(document.querySelectorAll("link")).filter(
-      (link) => link.rel === "import" && link.href.endsWith("html")
-    )
+  const externalTemplatesReady = initExternalTemplates(
+    Array.from(document.querySelectorAll('link[rel="import"]'))
   );
 
   // as well as inline templates
@@ -89,7 +88,7 @@ if (hmr) {
       }
     }
 
-    renderPolymorphicElement(el, name, template);
+    renderPolymorphicElement(el, name);
   });
 }
 
@@ -122,27 +121,18 @@ function resolveAbsolutePath(root, path) {
  * @param {string?} root
  * @param {string?} fromName
  */
-function fetchExternalDependencies(
-  paths,
-  root = "/",
-  fromName = ROOT_VERTEX_NAME
-) {
+function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
   return Promise.all(
     paths.map(async (link) => {
-      const url = new URL(link.href);
-
-      if (url.hostname === "localhost") {
-        throw new Error(
-          "You need to use double slash to prefix your HTML imports"
-        );
-      }
-
-      const path = link.href.replace("http://", "");
-      const target = resolveAbsolutePath(root, path);
+      // use getAttribute('href') instead of .href so browser doesn't transform
+      // relative directory syntax
+      const path = link.getAttribute("href");
+      const target = resolveAbsolutePath(root, path).replace(/\/\//g, "/");
       const templateHTML = await fetch(target).then((res) => res.text());
       const div = document.createElement("div");
       div.innerHTML = templateHTML;
       const template = div.querySelector("template");
+      const style = div.querySelector("style");
 
       if (!template) {
         throw new Error(`Template from ${path} not found`);
@@ -156,13 +146,13 @@ function fetchExternalDependencies(
        */
       const imports = Array.from(div.querySelectorAll("link[rel=import]"));
       if (imports.length === 0) {
-        initCustomElement(template.id, template.content);
+        initCustomElement(template.id, template.content, style);
         return;
       }
 
       const nextRoot = target.split("/").slice(0, -1).join("/");
-      await fetchExternalDependencies(imports, nextRoot + root, target);
-      initCustomElement(template.id, template.content);
+      await initExternalTemplates(imports, nextRoot + root, target);
+      initCustomElement(template.id, template.content, style);
     })
   );
 }
@@ -170,19 +160,19 @@ function fetchExternalDependencies(
 /**
  * @param {string} templateId
  * @param {DocumentFragment} fragment
+ * @param {HTMLStyleElement=} style
  */
-function initCustomElement(templateId, fragment) {
-  templateCache.set(templateId, fragment);
-  customElements.define(templateId, createCustomElement(templateId, fragment));
+function initCustomElement(templateId, fragment, style) {
+  templateCache.set(templateId, { fragment, style });
+  customElements.define(templateId, createCustomElement(templateId));
 }
 
 /**
  * @param {string} templateId
- * @param {DocumentFragment} fragment
  * @param {Document|ShadowRoot} root
  */
-function replaceCustomElement(templateId, fragment, root) {
-  const clazz = createCustomElement(templateId, fragment);
+function replaceCustomElement(templateId, root) {
+  const clazz = createCustomElement(templateId);
 
   // refresh custom elements
   /** @type {NodeListOf<HTMLElement>} */ (
@@ -198,16 +188,16 @@ function replaceCustomElement(templateId, fragment, root) {
     root.querySelectorAll(`[is="${templateId}"]`)
   ).forEach((node) => {
     Object.setPrototypeOf(node, clazz.prototype);
-    renderPolymorphicElement(node, templateId, fragment);
+    renderPolymorphicElement(node, templateId);
   });
 }
 
 /**
  * @param {PolymorphicElement} el
  * @param {string} templateId
- * @param {DocumentFragment} fragment
  */
-function renderPolymorphicElement(el, templateId, fragment) {
+function renderPolymorphicElement(el, templateId) {
+  const { fragment, style } = templateCache.get(templateId);
   /**
    * @type {Record<string, string>}
    */
@@ -224,29 +214,36 @@ function renderPolymorphicElement(el, templateId, fragment) {
   tempRoot.appendChild(fragment.cloneNode(true));
   bindVariables(tempRoot, vars, templateId);
 
+  let sheet;
+  if (style) {
+    sheet = new CSSStyleSheet();
+    sheet.replaceSync(style.innerHTML);
+  }
+
   if (el.shadowRoot) {
     // re-renders
     el.shadowRoot.replaceChild(
       tempRoot.children.item(0),
       el.shadowRoot.children[0]
     );
+    applyStyles(el.shadowRoot, sheet);
     return;
   }
 
   const root = el.attachShadow({ mode: "open" });
   root.appendChild(tempRoot.children.item(0));
 
-  injectGlobalStyle(root);
+  applyStyles(root, sheet);
   window.addEventListener("load", () => {
-    injectGlobalStyle(root);
+    applyStyles(root, sheet);
   });
 }
 
 /**
  * @param {string} templateId
- * @param {DocumentFragment} fragment
  */
-function createCustomElement(templateId, fragment) {
+function createCustomElement(templateId) {
+  const { fragment, style } = templateCache.get(templateId);
   const observedAttributes = Array.from(
     new Set(
       Array.from(fragment.querySelectorAll("*")).flatMap((el) => {
@@ -269,6 +266,13 @@ function createCustomElement(templateId, fragment) {
     }
 
     connectedCallback() {
+      if (style) {
+        this.sheet = new CSSStyleSheet();
+        this.sheet.replaceSync(style.innerHTML);
+      } else {
+        this.sheet = null;
+      }
+
       this.setup();
       this.render();
 
@@ -304,7 +308,7 @@ function createCustomElement(templateId, fragment) {
     }
 
     setup = () => {
-      injectGlobalStyle(this.root);
+      applyStyles(this.root, this.sheet);
     };
 
     render() {
@@ -374,20 +378,29 @@ function isCustomElement(el) {
 }
 
 /**
- * who needs scoped style, this is not web components
+ * merge root style & scoped style if any, no need to separate between the two
+ * this is not web components
  * @param {ShadowRoot} root
+ * @param {CSSStyleSheet=} sheet
  */
-function injectGlobalStyle(root) {
+function applyStyles(root, sheet) {
+  const adoptedStyleSheets = [];
+
   for (let i = 0; i < document.styleSheets.length; i++) {
     const style = document.styleSheets.item(i);
-    const sheet = new CSSStyleSheet();
+    const global = new CSSStyleSheet();
     for (let j = style.cssRules.length - 1; j > 0; j--) {
-      sheet.insertRule(style.cssRules.item(j).cssText);
+      global.insertRule(style.cssRules.item(j).cssText);
     }
 
-    // @ts-ignore: https://github.com/microsoft/TypeScript/issues/30022
-    root.adoptedStyleSheets = [sheet];
+    adoptedStyleSheets.push(global);
   }
+
+  if (sheet) {
+    adoptedStyleSheets.push(sheet);
+  }
+
+  root.adoptedStyleSheets = adoptedStyleSheets;
 }
 
 /**

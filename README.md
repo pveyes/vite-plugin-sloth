@@ -23,7 +23,7 @@ export default defineConfig({
 
 ## Usage
 
-Create custom components using HTML template with `id` attribute. The `id` will be used as the name of [custom elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) in dev. This means you have to follow [CE naming convention](https://html.spec.whatwg.org/#valid-custom-element-name) using kebab-case.
+Create custom components using HTML template with `id` attribute. The `id` will be used as the name of [Custom Elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) in dev. This means you have to follow Custom Elements [naming convention](https://html.spec.whatwg.org/#valid-custom-element-name) using `kebab-case`.
 
 ```html
 <template id="hello-world">
@@ -45,16 +45,28 @@ In build-time, the component will be compiled like this:
 </div>
 ```
 
+### Styling
+
+Even though you're using Custom Elements, you can still reference any global style inside the template, unlike typical Web Components. This means you can bring any CSS pre-processor or CSS framework you like, for example: Tailwind.
+
+```html
+<template id="hello-world">
+  <h1 class="text-lg text-pink-400 hover:text-pink-800">It works!</h1>
+</template>
+```
+
+Alternatively, you can use [scoped styles](#scoped-styles) by using external templates.
+
 ### External templates
 
-You can also reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
+You can reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
 
-Due to how `vite` handle link `href` in main index.html, **you need to prefix the href value with a double slash** so vite left the href value as is. This is important as sloth will manage the HTML dependency graph by itself.
+> Quick note: Due to how Vite handles `href` in `link` tag, you need to put your template files inside [public directory](https://vitejs.dev/guide/assets.html#the-public-directory) and reference top-level import using absolute path.
 
 ```html
 <html>
   <head>
-    <link rel="import" href="//templates/hello-world.html" />
+    <link rel="import" href="/templates/hello-world.html" />
   </head>
 
   <body>
@@ -77,20 +89,39 @@ This is the result
 </html>
 ```
 
-You can also includes external templates inside another external template.
+You can also reference other templates in an external template. Here you can use relative path, but you still need to put them inside public directory.
 
 ```html
-<!-- file: $root/templates/hello-world.html -->
+<!-- file: public/templates/hello-world.html -->
 
-<!-- this will be resolved to $root/templates/heading-text.html -->
-<link rel="import" href="//./heading-text.html" />
-<!-- this will be resolved to $root/heading-text.html -->
-<link rel="import" href="//../another-component.html" />
+<!-- this will be resolved to public/templates/heading-text.html -->
+<link rel="import" href="./heading-text.html" />
+<!-- this will be resolved to public/heading-text.html -->
+<link rel="import" href="../another-component.html" />
 
 <template id="hello-world">
   <heading-text>It works!</heading-text>
 </template>
 ```
+
+### Scoped Styles
+
+Using external templates allow you to define scoped style that only applies to elements inside template. To use scoped style, add style tag in your template file.
+
+```html
+<!-- file: public/templates/hello-world.html -->
+<style>
+  h1 {
+    font-size: max(10vw, 10vh);
+  }
+</style>
+
+<template id="hello-world">
+  <h1>It works!</h1>
+</template>
+```
+
+In build-time, the style will be hoisted to root, and all of its selectors will be scoped by template id.
 
 ### Polymorphic Element
 
