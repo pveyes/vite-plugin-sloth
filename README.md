@@ -158,14 +158,16 @@ You can then create matching slot by rendering child element (usually using `spa
 It will then be compiled into:
 
 ```html
-<h1>
-  Hello, <span slot="name">Fatih</slot>!
-</h1>
+<div data-template="hello-world">
+  <h1>
+    Hello, <span slot="name">Fatih</slot>!
+  </h1>
+</div>
 ```
 
 #### Attributes
 
-You can use variable inside HTML attributes by using data attribute with `var-` prefix.
+You can use variable inside HTML attributes by using [data attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*) with `var-` prefix.
 
 Template can define variable placeholder by writing data attribute in any element that needs it.
 
@@ -183,7 +185,7 @@ To pass the variable, you use the same data attribute
 <hello-world data-var-href="https://fatihkalifa.com"></hello-world>
 ```
 
-By default `sloth` will automatically fill attribute with the same name with the data attribute. For example `data-var-href` will set `href` attribute. So the above example compiles into:
+By default `sloth` will automatically fill attribute with the same name with the data attribute. For example, `data-var-href` will set `href` attribute. So the above example compiles into:
 
 ```html
 <div data-template="hello-world">
@@ -214,7 +216,7 @@ You can also mark data as optional by providing fallback value using the same at
 </div>
 ```
 
-If you want to change how data attribute maps to different attribute, pass attribute name to the data attribute. For example, `data-var-link="href"` means the component read `data-var-link` attribute from parent element, but will be used as `href`.
+If you want to map to different attribute, pass attribute name as the value in the data attribute. For example, `data-var-link="href"` means the component read `data-var-link` attribute from parent element, but will be used as `href`.
 
 ```html
 <!-- template -->
@@ -233,6 +235,27 @@ If you want to change how data attribute maps to different attribute, pass attri
     <a href="http://github.com/pveyes">It works!</a>
   </h1>
 </div>
+```
+
+If you want to forward data attribute to custom element, simply use the same data attribute.
+
+```html
+<hello-world
+  data-var-link="https://github.com/pveyes/vite-plugin-sloth"
+></hello-world>
+
+<!-- template -->
+<template id="hello-world">
+  <h1>
+    <!-- this will forward data-var-link to <link-component /> -->
+    <link-component data-var-link></link-component>
+  </h1>
+</template>
+
+<template id="link-component">
+  <!-- use data-var-link from <hello-world /> -->
+  <a data-var-link="href"> It works! </a>
+</template>
 ```
 
 ### Conditional, Loop, Map, Filter, Reduce
