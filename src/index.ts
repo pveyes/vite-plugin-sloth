@@ -4,6 +4,7 @@ import { Plugin } from "vite";
 import type { Element as DOMElement } from "domhandler";
 import cheerio, { Cheerio, CheerioAPI } from "cheerio";
 import chalk from "chalk";
+import css from "css";
 
 interface Options {
   flattenSlot?: boolean;
@@ -18,6 +19,7 @@ const preamble = `import "__BASE__${runtimePublicPath.slice(1)}"`;
 export default (options: Options = {}): Plugin => {
   let isBuild = false;
   let base = "/";
+  let publicDir = path.join(process.cwd(), "public");
 
   return {
     name: "sloth",
@@ -25,10 +27,11 @@ export default (options: Options = {}): Plugin => {
     configResolved: (config) => {
       isBuild = config.command === "build" || config.isProduction;
       base = config.base;
+      publicDir = config.publicDir;
     },
     transformIndexHtml: (html) => {
       if (isBuild) {
-        return transformHtml(html, options);
+        return transformHtml(html, { ...options, publicDir });
       }
 
       // use custom-elements to support HMR for external templates in dev
@@ -70,9 +73,19 @@ export default (options: Options = {}): Plugin => {
   };
 };
 
-async function transformHtml(html: string, options: Options) {
+interface TransformHtmlOptions extends Options {
+  publicDir: string;
+}
+
+interface Template {
+  name: string;
+  content: string;
+  style?: string;
+}
+
+async function transformHtml(html: string, options: TransformHtmlOptions) {
   const $ = cheerio.load(html);
-  const externalTemplates = await getExternalTemplates($);
+  const externalTemplates = await getExternalTemplates($, options.publicDir);
 
   const inlineTemplates = $("template")
     .map((_, template) => {
@@ -87,6 +100,14 @@ async function transformHtml(html: string, options: Options) {
 
   compileTemplates(templates, $, options.flattenSlot);
 
+  let styles = [];
+  templates.forEach((template) => {
+    if (template.style) {
+      styles.push(compileStyle(template.style, template.name));
+    }
+  });
+  $("head").append(`<style id="scoped-sloth">${styles.join("\n")}</style>`);
+
   // cleanup: remove all inline templates
   $("template").remove();
   return $.html().trim();
@@ -94,7 +115,7 @@ async function transformHtml(html: string, options: Options) {
 
 async function getExternalTemplates(
   $: CheerioAPI,
-  basePath = ""
+  basePath: string
 ): Promise<Template[]> {
   const templates = await Promise.all(
     $("link")
@@ -109,13 +130,12 @@ async function getExternalTemplates(
         // we don't want rel import to be included in HTML
         // as this is dev only import
         $(link).remove();
-
-        return link.attribs.href.replace(/^\/\//, "");
+        return link.attribs.href;
       })
       .toArray()
       .map(async (rawPath) => {
         const templateHTML = await fsp.readFile(
-          path.resolve(process.cwd(), basePath, rawPath),
+          path.join(basePath, rawPath),
           "utf8"
         );
         const $$ = cheerio.load(templateHTML);
@@ -123,12 +143,16 @@ async function getExternalTemplates(
         const template = {
           name: $$("template").attr("id"),
           content: $$("template").html(),
+          style: $$("style").html(),
         };
 
         const imports = $$('link[rel="import"]');
         if (imports.length > 0) {
-          const basePath = rawPath.split("/").slice(0, -1).join("/");
-          const templates = await getExternalTemplates($$, basePath);
+          const templateBasePath = rawPath.split("/").slice(0, -1).join("/");
+          const templates = await getExternalTemplates(
+            $$,
+            path.join(basePath, templateBasePath)
+          );
           return templates.concat([template]);
         }
 
@@ -204,6 +228,19 @@ function getVariables(el: DOMElement): Record<string, string> {
   }
 
   return variables;
+}
+
+function compileStyle(cssText: string, id: string) {
+  const ast = css.parse(cssText, { source: `${id}.scoped.css` });
+  // TODO: prefix keyframe?
+  ast.stylesheet.rules.forEach((rule) => {
+    if (rule.type === "rule") {
+      rule.selectors = rule.selectors.map((selector: string) => {
+        return `[data-template="${id}"] ${selector}`;
+      });
+    }
+  });
+  return css.stringify(ast);
 }
 
 let newLineInserted = false;
@@ -282,9 +319,4 @@ function compileContent(
     });
 
   return $.html();
-}
-
-interface Template {
-  name: string;
-  content: string;
 }

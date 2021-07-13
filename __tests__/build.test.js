@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const cheerio = require("cheerio");
+const css = require("css");
 
 const html = fs.readFileSync(
   path.join(__dirname, "../example/dist/index.html"),
@@ -81,4 +82,16 @@ test("no trace of variable bindings in build output", () => {
     Object.keys(el.attribs).some((attr) => attr.startsWith("data-var"))
   );
   expect(bindings.map((_, el) => el.tagName).toArray()).toEqual([]);
+});
+
+test("compile scoped style by adding template id prefix", () => {
+  const style = $("style#scoped-sloth");
+  const ast = css.parse(style.html());
+  console.log("ast", ast.stylesheet.rules);
+  expect(ast.stylesheet.rules[0].selectors[0]).toMatchInlineSnapshot(
+    `"[data-template=\\"plain-card\\"] .card"`
+  );
+  expect(ast.stylesheet.rules[1].selectors[0]).toMatchInlineSnapshot(
+    `"[data-template=\\"plain-card\\"] h3"`
+  );
 });
