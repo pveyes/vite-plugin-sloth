@@ -23,7 +23,7 @@ export default defineConfig({
 
 ## Usage
 
-Create custom components using HTML template with `id` attribute. The `id` will be used as the name of [custom elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) in dev. This means you have to follow [Custom Elements naming convention](https://html.spec.whatwg.org/#valid-custom-element-name) using kebab-case.
+Create custom components using HTML template with `id` attribute. The `id` will be used as the name of [Custom Elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) in dev. This means you have to follow Custom Elements [naming convention](https://html.spec.whatwg.org/#valid-custom-element-name) using `kebab-case`.
 
 ```html
 <template id="hello-world">
@@ -47,7 +47,7 @@ In build-time, the component will be compiled like this:
 
 ### Styling
 
-Even though you're using Custom Elements, you can still reference any global style inside the template, unlike typical web components. This means you can bring any CSS pre-processor or CSS framework you like, for example: Tailwind.
+Even though you're using Custom Elements, you can still reference any global style inside the template, unlike typical Web Components. This means you can bring any CSS pre-processor or CSS framework you like, for example: Tailwind.
 
 ```html
 <template id="hello-world">
@@ -59,9 +59,9 @@ Alternatively, you can use [scoped styles](#scoped-styles) by using external tem
 
 ### External templates
 
-You can also reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
+You can reference external templates using [HTML Imports](https://developer.mozilla.org/en-US/docs/Web/Web_Components/HTML_Imports). Yes, this is deprecated, which means we can ~~ab~~use it.
 
-Due to how Vite handles link `href`, you need to put your templates in [public directory](https://vitejs.dev/guide/assets.html#the-public-directory) and reference top-level import using absolute path.
+> Quick note: Due to how Vite handles `href` in `link` tag, you need to put your template files inside [public directory](https://vitejs.dev/guide/assets.html#the-public-directory) and reference top-level import using absolute path.
 
 ```html
 <html>
@@ -89,7 +89,7 @@ This is the result
 </html>
 ```
 
-You can also includes external templates inside another external template. Here you can use relative path, but you still need to put them inside `public` directory.
+You can also reference other templates in an external template. Here you can use relative path, but you still need to put them inside public directory.
 
 ```html
 <!-- file: public/templates/hello-world.html -->
