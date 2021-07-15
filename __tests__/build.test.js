@@ -4,7 +4,7 @@ const cheerio = require("cheerio");
 const css = require("css");
 
 const html = fs.readFileSync(
-  path.join(__dirname, "../example/dist/index.html"),
+  path.join(__dirname, "../site/dist/index.html"),
   "utf-8"
 );
 const $ = cheerio.load(html);
