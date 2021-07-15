@@ -998,13 +998,10 @@ util-deprecate@^1.0.2:
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=
 
-"vite-plugin-sloth@file:..":
-  version "0.1.1"
-  dependencies:
-    cheerio "^1.0.0-rc.10"
-
-"vite-plugin-sloth@file:../":
-  version "0.1.1"
+vite-plugin-sloth@*:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/vite-plugin-sloth/-/vite-plugin-sloth-0.2.0.tgz#b9139edf55a9f802e3391945a1a999edb644b8b9"
+  integrity sha512-X0Foeehh8qKCRZHczo0ac5U4jUP1rawnOFqoY4DtXmZ6MR2alS0aRmLeWp+KZyb6SMgY1INsNFTBrTzuHFK8Sg==
   dependencies:
     cheerio "^1.0.0-rc.10"
 

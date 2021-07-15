@@ -27,8 +27,8 @@ jobs:
           path: dist
           retention-days: 1
 
-  build-example:
-    name: Build Example
+  build-site:
+    name: Build Site
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -44,20 +44,20 @@ jobs:
 
       - uses: bahmutov/npm-install@v1
         with:
-          working-directory: example
+          working-directory: site
 
       - name: Link dependency
         run: yarn link vite-plugin-sloth
-        working-directory: example
+        working-directory: site
 
-      - name: Build example to static
+      - name: Build site to static
         run: yarn build
-        working-directory: example
+        working-directory: site
 
       - name: Validate build output
         run: yarn test
 
       - uses: actions/upload-artifact@v2
         with:
-          name: example-dist
-          path: example/dist
+          name: site-dist
+          path: site/dist
