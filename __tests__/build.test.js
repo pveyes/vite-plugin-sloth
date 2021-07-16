@@ -3,22 +3,20 @@ const fs = require("fs");
 const cheerio = require("cheerio");
 const css = require("css");
 
-const html = fs.readFileSync(
-  path.join(__dirname, "../site/dist/index.html"),
-  "utf-8"
+const $index = cheerio.load(
+  fs.readFileSync(path.join(__dirname, "../site/dist/index.html"), "utf-8")
 );
-const $ = cheerio.load(html);
 
 test("must not contain HTML import", () => {
-  expect($('link[rel="import"]').length).toBe(0);
+  expect($index('link[rel="import"]').length).toBe(0);
 });
 
 test("must not contain inline template tag", () => {
-  expect($("template").length).toBe(0);
+  expect($index("template").length).toBe(0);
 });
 
 test("all custom elements must be resolved", () => {
-  const unresolvedCustomElements = $("*")
+  const unresolvedCustomElements = $index("*")
     .filter((_, el) => {
       return el.tagName.includes("-");
     })
@@ -28,7 +26,7 @@ test("all custom elements must be resolved", () => {
 });
 
 test("all polymorphic elements must be resolved", () => {
-  const unresolvedPolymorphicElements = $("[is]")
+  const unresolvedPolymorphicElements = $index("[is]")
     .filter((_, el) => {
       return el.attribs["data-template"] === undefined;
     })
@@ -37,61 +35,68 @@ test("all polymorphic elements must be resolved", () => {
   expect(unresolvedPolymorphicElements).toEqual([]);
 });
 
-test("render correct slot: hello-world", () => {
-  const hw = $('[data-template="hello-world"]');
-  const first = $(hw.get(0));
-  const second = $(hw.get(1));
-
-  expect(first.find("a").html()).toMatchInlineSnapshot(`"Hello, Fatih"`);
-  expect(second.find("a").html()).toMatchInlineSnapshot(`"Hello, Kalifa"`);
+test("all HTML includes must be resolved", () => {
+  const unresolvedHTMLIncludes = $index("script")
+    .filter((_, el) => {
+      return el.attribs.type === "text/html";
+    })
+    .map((_, el) => el.attribs.src)
+    .toArray();
+  expect(unresolvedHTMLIncludes).toEqual([]);
 });
 
-test("use data-var for variable-attribute binding", () => {
-  const hw = $('[data-template="hello-world"]');
-  const first = $(hw.get(0));
-
-  expect(first.find("a").attr("href")).toMatchInlineSnapshot(
-    `"https://fatihkalifa.com"`
+test("render correct slot: feature-set", () => {
+  const features = $index('[data-template="feature-set"]');
+  expect(features.find("h3").html().trim()).toMatchInlineSnapshot(
+    `"❤️ HTML that You Know and Love"`
   );
 });
 
-test("use default value to make data-var optional", () => {
-  const hw = $('[data-template="hello-world"]');
-  const second = $(hw.get(1));
+// test("use data-var for variable-attribute binding", () => {
+//   const hw = $('[data-template="hello-world"]');
+//   const first = $(hw.get(0));
 
-  // passed variable
-  expect(second.find("a").attr("href")).toMatchInlineSnapshot(
-    `"https://github.com/pveyes"`
-  );
-});
+//   expect(first.find("a").attr("href")).toMatchInlineSnapshot(
+//     `"https://fatihkalifa.com"`
+//   );
+// });
 
-test("can bind variable deep in the tree over multiple custom elements", () => {
-  const tw = $('[data-template="tailwind-card"]');
+// test("use default value to make data-var optional", () => {
+//   const hw = $('[data-template="hello-world"]');
+//   const second = $(hw.get(1));
 
-  expect($(tw.get(0)).find("a").attr("href")).toMatchInlineSnapshot(
-    `undefined`
-  );
+//   // passed variable
+//   expect(second.find("a").attr("href")).toMatchInlineSnapshot(
+//     `"https://github.com/pveyes"`
+//   );
+// });
 
-  expect($(tw.get(1)).find("a").attr("href")).toMatchInlineSnapshot(
-    `"https://github.com/pveyes/htmr"`
-  );
-});
+// test("can bind variable deep in the tree over multiple custom elements", () => {
+//   const tw = $('[data-template="tailwind-card"]');
+
+//   expect($(tw.get(0)).find("a").attr("href")).toMatchInlineSnapshot(
+//     `undefined`
+//   );
+
+//   expect($(tw.get(1)).find("a").attr("href")).toMatchInlineSnapshot(
+//     `"https://github.com/pveyes/htmr"`
+//   );
+// });
 
 test("no trace of variable bindings in build output", () => {
-  const bindings = $("*").filter((_, el) =>
+  const bindings = $index("*").filter((_, el) =>
     Object.keys(el.attribs).some((attr) => attr.startsWith("data-var"))
   );
   expect(bindings.map((_, el) => el.tagName).toArray()).toEqual([]);
 });
 
 test("compile scoped style by adding template id prefix", () => {
-  const style = $("style#scoped-sloth");
+  const style = $index("style#scoped-sloth");
   const ast = css.parse(style.html());
-  console.log("ast", ast.stylesheet.rules);
-  expect(ast.stylesheet.rules[0].selectors[0]).toMatchInlineSnapshot(
-    `"[data-template=\\"plain-card\\"] .card"`
-  );
   expect(ast.stylesheet.rules[1].selectors[0]).toMatchInlineSnapshot(
-    `"[data-template=\\"plain-card\\"] h3"`
+    `"[data-template=\\"hero-text\\"] .with-cursor::after"`
+  );
+  expect(ast.stylesheet.rules[2].selectors[0]).toMatchInlineSnapshot(
+    `"[data-template=\\"hero-text\\"] h1 strong"`
   );
 });

@@ -1,0 +1,15 @@
+<template id="quick-step" class="flex-shrink-1">
+  <div class="flex flex-row flex-wrap gap-4 md:gap-8 lg:gap-12 mb-3 lg:mb-12">
+    <div class="md:w-96 flex-grow">
+      <h3 class="text-xl mb-3">
+        <slot name="title">{title}</slot>
+      </h3>
+      <div class="font-light text-gray-700 font-system">
+        <slot name="description">{description}</slot>
+      </div>
+    </div>
+    <div class="flex-grow flex-shrink md:flex-shrink-0 w-108 max-w-full">
+      <slot name="code" slot="children">{code}</slot>
+    </div>
+  </div>
+</template>

@@ -6,8 +6,14 @@ import cheerio, { Cheerio, CheerioAPI } from "cheerio";
 import chalk from "chalk";
 import css from "css";
 
+interface FlattenSlotFunc {
+  (node: DOMElement): boolean;
+}
+
+type FlattenSlotOptions = boolean | string[] | FlattenSlotFunc;
+
 interface Options {
-  flattenSlot?: boolean;
+  flattenSlot?: FlattenSlotOptions;
 }
 
 const runtimePublicPath = "/@sloth-refresh";
@@ -27,7 +33,7 @@ export default (options: Options = {}): Plugin => {
   let base = "/";
   let publicDir = path.join(process.cwd(), "public");
 
-  let initScript = "";
+  const initScriptMap = new Map();
   const componentScriptMap = new Map();
 
   return {
@@ -40,7 +46,7 @@ export default (options: Options = {}): Plugin => {
     },
     transformIndexHtml: {
       enforce: "pre",
-      transform: async (html) => {
+      transform: async (html, ctx) => {
         if (!isBuild) {
           // use custom-elements to support HMR for external templates in dev
           return {
@@ -58,13 +64,17 @@ export default (options: Options = {}): Plugin => {
           };
         }
 
+        let initScript = "";
         const $ = cheerio.load(html);
-        const externalTemplates = await getExternalTemplates($, publicDir);
+        const { templates: externalTemplates, includes } =
+          await getExternalReferences($, publicDir);
 
         const inlineTemplates = $("template")
           .map((_, template) => {
             return {
               name: template.attribs.id,
+              element: template.attribs["data-element"],
+              className: template.attribs.class,
               content: $(template).html(),
             };
           })
@@ -73,6 +83,7 @@ export default (options: Options = {}): Plugin => {
         const templates = externalTemplates.concat(inlineTemplates);
 
         compileTemplates(templates, $, options.flattenSlot);
+        compileIncludes($, includes);
 
         let styles = [];
         templates.forEach((template) => {
@@ -108,6 +119,7 @@ export default (options: Options = {}): Plugin => {
               template.name
             )})\n`;
           });
+          initScriptMap.set(ctx.path, initScript);
 
           return {
             html: $.html(),
@@ -116,7 +128,7 @@ export default (options: Options = {}): Plugin => {
                 tag: "script",
                 attrs: {
                   type: "module",
-                  src: initScriptPath,
+                  src: initScriptPath + ctx.path.replace(".html", ""),
                 },
                 injectTo: "body",
               },
@@ -128,15 +140,17 @@ export default (options: Options = {}): Plugin => {
       },
     },
     resolveId(id) {
-      const isSlothRuntime = [
-        runtimePublicPath,
-        initScriptPath,
-        bootstrapScriptPath,
-      ].some((targetId) => {
-        return targetId === id;
-      });
+      const isSlothRuntime = [runtimePublicPath, bootstrapScriptPath].some(
+        (targetId) => {
+          return targetId === id;
+        }
+      );
 
-      if (isSlothRuntime || id.startsWith(componentsScriptPath)) {
+      if (
+        isSlothRuntime ||
+        id.startsWith(componentsScriptPath) ||
+        id.startsWith(initScriptPath)
+      ) {
         return id;
       }
     },
@@ -146,14 +160,16 @@ export default (options: Options = {}): Plugin => {
           return runtimeCode;
         case bootstrapScriptPath:
           return bootstrapCode;
-        case initScriptPath: {
-          return initScript;
-        }
       }
 
       if (id.startsWith(componentsScriptPath)) {
         const componentName = id.replace(componentsScriptPath, "");
         return componentScriptMap.get(componentName);
+      }
+
+      if (id.startsWith(initScriptPath)) {
+        const pathEntry = id.replace(initScriptPath, "");
+        return initScriptMap.get(pathEntry + ".html");
       }
     },
     transform: (code, id) => {
@@ -183,22 +199,57 @@ function toClassName(name: string) {
 
 interface Template {
   name: string;
+  element?: string;
+  className: string;
   content: string;
   style?: string;
   script?: string;
 }
 
-async function getExternalTemplates(
+interface HTMLInclude {
+  src: string;
+  html: string;
+}
+
+interface ExternalReference {
+  templates: Template[];
+  includes: HTMLInclude[];
+}
+
+const TemplateCache = new Map<string, Template>();
+
+async function getExternalReferences(
   $: CheerioAPI,
-  basePath: string
-): Promise<Template[]> {
+  publicDir: string,
+  basePath = ""
+): Promise<ExternalReference> {
+  const includes = await Promise.all(
+    $("script")
+      .filter((_, script) => {
+        return (
+          script.attribs.type === "text/html" &&
+          script.attribs.src.endsWith("html")
+        );
+      })
+      .map((_, script) => {
+        return script.attribs.src;
+      })
+      .toArray()
+      .map(async (src) => {
+        const includePath = path.join(publicDir, src);
+        const html = await fsp.readFile(includePath, "utf8");
+
+        return {
+          src,
+          html,
+        };
+      })
+  );
   const templates = await Promise.all(
     $("link")
       .filter((_, link) => {
         return (
-          link.attribs.rel === "import" &&
-          (link.attribs.href.endsWith("html") ||
-            link.attribs.href.startsWith("data:text/html"))
+          link.attribs.rel === "import" && link.attribs.href.endsWith("html")
         );
       })
       .map((_, link) => {
@@ -209,14 +260,18 @@ async function getExternalTemplates(
       })
       .toArray()
       .map(async (rawPath) => {
-        const templateHTML = await fsp.readFile(
-          path.join(basePath, rawPath),
-          "utf8"
-        );
-        const $$ = cheerio.load(templateHTML);
+        const templatePath = path.join(publicDir, basePath, rawPath);
+        if (TemplateCache.has(templatePath)) {
+          return TemplateCache.get(templatePath);
+        }
 
+        const templateHTML = await fsp.readFile(templatePath, "utf8");
+
+        const $$ = cheerio.load(templateHTML);
         const template = {
           name: $$("template").attr("id"),
+          element: $$("template").attr("data-element"),
+          className: $$("template").attr("class"),
           content: $$("template").html(),
           style: $$("style").html(),
           script: $$("script").html(),
@@ -225,24 +280,27 @@ async function getExternalTemplates(
         const imports = $$('link[rel="import"]');
         if (imports.length > 0) {
           const templateBasePath = rawPath.split("/").slice(0, -1).join("/");
-          const templates = await getExternalTemplates(
-            $$,
-            path.join(basePath, templateBasePath)
-          );
+          const { templates, includes: additionalIncludes } =
+            await getExternalReferences($$, publicDir, templateBasePath);
+          includes.push(...additionalIncludes);
           return templates.concat([template]);
         }
 
+        TemplateCache.set(templatePath, template);
         return template;
       })
   );
 
-  return templates.flat().filter(Boolean);
+  return {
+    templates: templates.flat().filter(Boolean),
+    includes,
+  };
 }
 
 function compileTemplates(
   templates: Template[],
   $: CheerioAPI,
-  flattenSlot = false
+  flattenSlot: FlattenSlotOptions
 ) {
   templates.forEach((template) => {
     const customElements: Cheerio<DOMElement> = $(`${template.name}`) as any;
@@ -256,8 +314,10 @@ function compileTemplates(
         flattenSlot,
       });
 
-      const wrapper = $("<div></div>");
+      const wrapperElement = template.element || "div";
+      const wrapper = $(`<${wrapperElement}></${wrapperElement}>`);
       wrapper.attr("data-template", template.name);
+      wrapper.attr("class", template.className);
       wrapper.append(content.trim());
       target.replaceWith(wrapper);
     });
@@ -265,6 +325,7 @@ function compileTemplates(
     isAttributeElements.each((_, el) => {
       const variables = getVariables(el);
       const target = $(el);
+      console.log("compiling PE", template.name);
       const content = compileContent(target, template.content, {
         name: template.name,
         variables,
@@ -293,6 +354,12 @@ function compileTemplates(
   }
 }
 
+function compileIncludes($: CheerioAPI, includes: HTMLInclude[]) {
+  includes.forEach(({ src, html }) => {
+    $(`script[src="${src}"]`).replaceWith(html);
+  });
+}
+
 function getVariables(el: DOMElement): Record<string, string> {
   const data = el.attribs;
   const variables = Object.create(null);
@@ -312,7 +379,12 @@ function compileStyle(cssText: string, id: string) {
   ast.stylesheet.rules.forEach((rule) => {
     if (rule.type === "rule") {
       rule.selectors = rule.selectors.map((selector: string) => {
-        return `[data-template="${id}"] ${selector}`;
+        const wrapperPrefix = `[data-template="${id}"]`;
+        // TODO: throw error on :host() and :host-context() selector
+        if (selector.includes(":host")) {
+          return selector.replace(":host", wrapperPrefix);
+        }
+        return `${wrapperPrefix} ${selector}`;
       });
     }
   });
@@ -323,7 +395,7 @@ let newLineInserted = false;
 
 interface CompileOptions {
   name: string;
-  flattenSlot?: boolean;
+  flattenSlot?: FlattenSlotOptions;
   variables: Record<string, string>;
 }
 
@@ -332,14 +404,28 @@ function compileContent(
   template: string,
   options: CompileOptions
 ) {
-  const { flattenSlot, variables } = options;
+  const { flattenSlot = [], variables } = options;
   const $ = cheerio.load(template);
 
   // compile slots
   $("slot").each((_, slot) => {
     const name = slot.attribs.name;
     const value = target.find(`[slot=${name}]`);
-    $(slot).replaceWith(flattenSlot ? value.html() : value);
+
+    if (value.length === 0) {
+      return;
+    }
+
+    let shouldFlattenSlot = false;
+    if (typeof flattenSlot === "boolean") {
+      shouldFlattenSlot = flattenSlot;
+    } else if (Array.isArray(flattenSlot)) {
+      shouldFlattenSlot = flattenSlot.includes(value.get(0).tagName);
+    } else if (typeof flattenSlot === "function") {
+      shouldFlattenSlot = flattenSlot(value.get(0));
+    }
+
+    $(slot).replaceWith(shouldFlattenSlot ? value.html() : value);
   });
 
   // compile variables

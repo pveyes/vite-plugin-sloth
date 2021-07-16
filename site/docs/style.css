@@ -1,0 +1,51 @@
+.docs {
+  @apply max-w-prose flex-grow-0;
+}
+
+.docs code {
+  @apply inline-block;
+}
+
+.docs h1 {
+  @apply text-5xl font-bold mb-8 font-sans;
+}
+
+.docs h2 {
+  @apply text-3xl font-bold mb-8 mt-12 font-sans;
+}
+
+.docs h3 {
+  @apply text-xl font-bold mb-4 mt-8 font-sans;
+}
+
+.docs blockquote {
+  @apply border-l-4 border-gray-200 pl-4 italic;
+}
+
+/* we want to treat heading links differently */
+.docs p a {
+  @apply text-accent-500 hover:text-accent-600 border-dotted border-b hover:border-accent-600;
+}
+
+.docs h2 a,
+.docs h3 a {
+  @apply border-dotted border-b hover:border-gray-600;
+}
+
+.docs p,
+.docs ol,
+.docs ul {
+  @apply text-base mb-4;
+}
+
+.docs ul {
+  @apply list-disc pl-8;
+}
+
+.docs ol {
+  @apply list-decimal pl-8;
+}
+
+.docs li {
+  @apply mb-2;
+}

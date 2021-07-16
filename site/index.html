@@ -1,61 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Sloth</title>
+    <title>Sloth: Vite Plugin to build SSG using Custom Elements</title>
+    <meta
+      name="description"
+      content="Fresh take on static site generation, using HTML-first approach to build website. Powered by ⚡️ Vite"
+    />
+    <meta
+      name="og:title"
+      content="Sloth: Vite Plugin to build SSG using Custom Elements"
+    />
+    <meta
+      name="og:description"
+      content="Fresh take on static site generation, using HTML-first approach to build website. Powered by ⚡️ Vite"
+    />
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <link rel="stylesheet" href="./style.css" />
-    <link rel="import" href="/templates/tailwind-card.html" />
-    <link rel="import" href="/templates/plain-card.html" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./global.css" />
+    <!-- templates -->
+    <link rel="import" href="/templates/home/hero-text.html" />
+    <link rel="import" href="/templates/home/section-features.html" />
+    <link rel="import" href="/templates/home/section-intro.html" />
+    <link rel="import" href="/templates/home/section-faq.html" />
+    <link rel="import" href="/templates/sl-header.html" />
+    <link rel="import" href="/templates/sl-footer.html" />
   </head>
 
   <body>
-    <div id="app">
-      <hello-world>
-        <span slot="name">Fatih</span>
-      </hello-world>
-
-      <section
-        is="hello-world"
-        class="text-pink-500"
-        data-var-href="https://github.com/pveyes"
-      >
-        <span slot="name">Kalifa</span>
-      </section>
-
-      <plain-card>
-        <span slot="title">Plain Card</span>
-        <span slot="description">This is a plain card using scoped style</span>
-      </plain-card>
-
-      <tailwind-card>
-        <span slot="name">vite-plugin-sloth</span>
-        <span slot="description"
-          >Simple Static Site Generator using HTML
-          <code class="text-sm">template</code> and
-          <code class="text-sm">slot</code>
-          element.</span
+    <div id="app" class="font-system px-6 lg:px-4">
+      <sl-header></sl-header>
+      <main class="flex flex-col gap-16">
+        <section
+          class="
+            max-w-screen-lg
+            m-auto
+            flex
+            h-120
+            items-center
+            pb-32
+            sm:pb-0
+            relative
+          "
         >
-      </tailwind-card>
+          <hero-text></hero-text>
+          <div class="absolute bottom-0 sm:bottom-8">
+            <p class="mb-4 text-gray-500">
+              Imagine
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements"
+                class="link"
+                >Custom Elements</a
+              >, but works without JS and SSR friendly.
+            </p>
+            <div class="flex flex-row flex-wrap gap-4">
+              <a
+                href="/docs/"
+                class="
+                  py-3
+                  px-14
+                  rounded-md
+                  bg-accent-500
+                  text-white
+                  hover:bg-accent-600
+                  active:bg-accent-700
+                  flex-grow
+                  text-center
+                "
+                >Get Started</a
+              >
+              <a
+                href="#quick-look"
+                class="
+                  py-2.5
+                  px-10
+                  rounded-md
+                  text-accent-500
+                  hover:text-accent-200
+                  border-2
+                  flex-grow
+                  text-center
+                "
+                >Take a quick look</a
+              >
+            </div>
+          </div>
+        </section>
 
-      <aside is="tailwind-card" data-var-link="https://github.com/pveyes/htmr">
-        <span slot="name">htmr</span>
-        <span slot="description"
-          >Simple and lightweight (&lt; 2kB) HTML string to React element
-          conversion library</span
-        >
-      </aside>
+        <div class="grid grid-cols-1 divide-y divide-gray-200 relative">
+          <section-features></section-features>
+          <section-intro></section-intro>
+          <section-faq></section-faq>
+          <div class="m-auto py-16 text-center max-w-screen-lg w-full">
+            <p class="mb-8">Need more information?</p>
+            <a
+              href="/docs/"
+              class="
+                py-3
+                px-14
+                rounded-md
+                bg-accent-500
+                text-white
+                hover:bg-accent-600
+              "
+              >Head to the Docs</a
+            >
+          </div>
+        </div>
+      </main>
+      <sl-footer></sl-footer>
     </div>
-
-    <template id="hello-world">
-      <h1>
-        <a data-var-href href="https://fatihkalifa.com"
-          >Hello, <slot name="name">{name}</slot></a
-        >
-      </h1>
-    </template>
-    <script type="module" src="/main.js"></script>
   </body>
 </html>

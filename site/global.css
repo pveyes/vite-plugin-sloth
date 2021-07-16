@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply text-gray-700 font-system;
+}
+
+img {
+  margin: auto;
+}
+
+pre code::before,
+pre code::after {
+  content: "";
+}
+
+pre {
+  @apply py-4 px-4 mb-4 rounded-md overflow-x-auto;
+}
+
+*[id]:not([id=""]) {
+  scroll-margin-top: 7rem;
+}
+
+.active {
+  @apply text-accent-500;
+}
+
+.link {
+  @apply text-accent-500 hover:text-accent-700;
+}
+
+.link-s {
+  @apply hover:text-accent-600;
+}
+
+code {
+  @apply text-sm text-accent-500;
+}
+
+p {
+  @apply mb-2;
+}
+
+code::before,
+code::after {
+  content: "`";
+}
+
+.section {
+  @apply max-w-screen-lg m-auto w-full py-8 lg:py-16;
+}
+
+.section-title {
+  @apply font-sans font-semibold text-left md:text-center text-2xl lg:text-3xl mb-8 lg:mb-12;
+}
+
+.lang-tag {
+  color: #ea7c60;
+}
+
+.lang-prop {
+  color: palegoldenrod;
+}
+
+.lang-string {
+  color: greenyellow;
+}
+
+html {
+  scroll-behavior: smooth;
+}

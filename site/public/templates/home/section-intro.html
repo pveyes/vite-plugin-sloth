@@ -1,0 +1,55 @@
+<link rel="import" href="./quick-step.html" />
+
+<template id="section-intro" data-element="section" class="section">
+  <h2 class="section-title" id="quick-look">1 minute Intro</h2>
+  <quick-step>
+    <span slot="title">Write a template</span>
+    <div slot="description">
+      <p>
+        Use <code>template</code> element to define a template, and pass an
+        <code>id</code>
+        to name your Custom Elements. You need to follow Custom Elements naming
+        convention by using
+        <code>kebab-case</code>.
+      </p>
+      <p>
+        You can (optionally) create a <code>slot</code> as a children
+        placeholder. Slot have a unique name that can be referenced later.
+      </p>
+    </div>
+    <div slot="code">
+      <script
+        type="text/html"
+        src="/markdown/html/intro-template.html"
+      ></script>
+    </div>
+  </quick-step>
+  <quick-step>
+    <span slot="title">Reuse using Custom Elements</span>
+    <div slot="description">
+      Use Custom Elements to reuse and render your components anywhere by
+      matching it with previously defined <code>id</code>. Fill a slot by using
+      any HTML element by referencing the
+      <code>name</code>
+    </div>
+    <div slot="code">
+      <script type="text/html" src="/markdown/html/intro-usage.html"></script>
+    </div>
+  </quick-step>
+  <quick-step>
+    <span slot="title">Serve native HTML elements</span>
+    <div slot="description">
+      In build time the custom element will be compiled to native HTML elements,
+      with
+      <a href="/docs/basic/#scoped-styles" class="link">scoped styles</a>
+      and
+      <a href="/docs/basic/#element-extensions" class="link"
+        >element extensions</a
+      >
+      if any.
+    </div>
+    <div slot="code">
+      <script type="text/html" src="/markdown/html/intro-result.html"></script>
+    </div>
+  </quick-step>
+</template>
