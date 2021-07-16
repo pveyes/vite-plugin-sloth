@@ -2,10 +2,15 @@
   .card {
     box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
     padding: 10px;
+    color: #000;
   }
 
   h3 {
     font-size: max(10vw, 10vh);
+  }
+
+  .clicked {
+    color: palegoldenrod;
   }
 </style>
 
@@ -17,5 +22,23 @@
     <p>
       <slot name="description">{description}</slot>
     </p>
+    <span>PS: Click me</span>
   </div>
 </template>
+
+<script type="module">
+  export default class PlainCard extends HTMLElement {
+    connectedCallback() {
+      this.card = this.root.querySelector(".card");
+      this.card.addEventListener("click", this.handleClick);
+    }
+
+    disconnectedCallback() {
+      this.card.removeEventListener("click", this.handleClick);
+    }
+
+    handleClick = (e) => {
+      this.card.classList.toggle("clicked");
+    };
+  }
+</script>

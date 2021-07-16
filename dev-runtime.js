@@ -6,7 +6,7 @@
  */
 
 /**
- * @typedef {{ fragment: DocumentFragment, style?: HTMLStyleElement }} ElementTemplate
+ * @typedef {{ fragment: DocumentFragment, style?: HTMLStyleElement, script?: HTMLScriptElement }} ElementTemplate
  * @type {Map<string, ElementTemplate>}
  */
 const templateCache = new Map();
@@ -34,6 +34,7 @@ if (hmr) {
     div.innerHTML = templateHTML;
     const template = div.querySelector("template");
     const style = div.querySelector("style");
+    const script = div.querySelector(`script`);
 
     /** @type {Array<Document|ShadowRoot>} */
     let roots = [document];
@@ -49,7 +50,11 @@ if (hmr) {
       }
     });
 
-    templateCache.set(template.id, { fragment: template.content, style });
+    templateCache.set(template.id, {
+      fragment: template.content,
+      style,
+      script,
+    });
     roots.forEach((root) => {
       replaceCustomElement(template.id, root);
     });
@@ -129,10 +134,13 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
       const path = link.getAttribute("href");
       const target = resolveAbsolutePath(root, path).replace(/\/\//g, "/");
       const templateHTML = await fetch(target).then((res) => res.text());
+
       const div = document.createElement("div");
       div.innerHTML = templateHTML;
+
       const template = div.querySelector("template");
       const style = div.querySelector("style");
+      const script = div.querySelector("script");
 
       if (!template) {
         throw new Error(`Template from ${path} not found`);
@@ -146,13 +154,13 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
        */
       const imports = Array.from(div.querySelectorAll("link[rel=import]"));
       if (imports.length === 0) {
-        initCustomElement(template.id, template.content, style);
+        initCustomElement(template.id, template.content, { style, script });
         return;
       }
 
       const nextRoot = target.split("/").slice(0, -1).join("/");
       await initExternalTemplates(imports, nextRoot + root, target);
-      initCustomElement(template.id, template.content, style);
+      initCustomElement(template.id, template.content, { style, script });
     })
   );
 }
@@ -160,19 +168,20 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
 /**
  * @param {string} templateId
  * @param {DocumentFragment} fragment
- * @param {HTMLStyleElement=} style
+ * @param {{ style?: HTMLStyleElement, script?: HTMLScriptElement }} enhancer
  */
-function initCustomElement(templateId, fragment, style) {
-  templateCache.set(templateId, { fragment, style });
-  customElements.define(templateId, createCustomElement(templateId));
+async function initCustomElement(templateId, fragment, { style, script } = {}) {
+  templateCache.set(templateId, { fragment, style, script });
+  const customElement = await createCustomElement(templateId);
+  customElements.define(templateId, customElement);
 }
 
 /**
  * @param {string} templateId
  * @param {Document|ShadowRoot} root
  */
-function replaceCustomElement(templateId, root) {
-  const clazz = createCustomElement(templateId);
+async function replaceCustomElement(templateId, root) {
+  const clazz = await createCustomElement(templateId);
 
   // refresh custom elements
   /** @type {NodeListOf<HTMLElement>} */ (
@@ -241,9 +250,10 @@ function renderPolymorphicElement(el, templateId) {
 
 /**
  * @param {string} templateId
+ * @return {Promise<any>} TODO: use HTMLElement
  */
-function createCustomElement(templateId) {
-  const { fragment, style } = templateCache.get(templateId);
+async function createCustomElement(templateId) {
+  const { fragment, style, script } = templateCache.get(templateId);
   const observedAttributes = Array.from(
     new Set(
       Array.from(fragment.querySelectorAll("*")).flatMap((el) => {
@@ -254,7 +264,9 @@ function createCustomElement(templateId) {
     )
   );
 
-  return class extends HTMLElement {
+  const BaseClass = script ? await getBaseClass(script) : HTMLElement;
+
+  return class extends BaseClass {
     static get observedAttributes() {
       return observedAttributes;
     }
@@ -276,10 +288,13 @@ function createCustomElement(templateId) {
       this.setup();
       this.render();
 
+      // run super after render so user can query element from root
+      super.connectedCallback?.();
       window.addEventListener("load", this.setup);
     }
 
     disconnectedCallback() {
+      super.disconnectedCallback?.();
       window.removeEventListener("load", this.setup);
     }
 
@@ -325,6 +340,22 @@ function createCustomElement(templateId) {
       }
     }
   };
+}
+
+/**
+ * @param {HTMLScriptElement} script
+ * @return {Promise<any>} TODO: use HTMLElement base class
+ */
+async function getBaseClass(script) {
+  const js = script.innerHTML;
+  const encodedJs = encodeURIComponent(js);
+  const dataUri = "data:text/javascript;charset=utf-8," + encodedJs;
+  const exp = await import(/* @vite-ignore */ dataUri);
+  if (!exp.default) {
+    throw new Error("Invalid module");
+  }
+
+  return exp.default;
 }
 
 /**

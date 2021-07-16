@@ -12,14 +12,23 @@ interface Options {
 
 const runtimePublicPath = "/@sloth-refresh";
 const runtimeFilePath = require.resolve("../dev-runtime");
+const bootstrapFilePath = require.resolve("../bootstrap");
 const runtimeCode = "\n" + fs.readFileSync(runtimeFilePath, "utf8");
+const bootstrapCode = "\n" + fs.readFileSync(bootstrapFilePath, "utf8");
 
 const preamble = `import "__BASE__${runtimePublicPath.slice(1)}"`;
+
+const initScriptPath = "/@sloth-init";
+const bootstrapScriptPath = "/@sloth-bootstrap";
+const componentsScriptPath = "/@sloth-component/";
 
 export default (options: Options = {}): Plugin => {
   let isBuild = false;
   let base = "/";
   let publicDir = path.join(process.cwd(), "public");
+
+  let initScript = "";
+  const componentScriptMap = new Map();
 
   return {
     name: "sloth",
@@ -29,34 +38,128 @@ export default (options: Options = {}): Plugin => {
       base = config.base;
       publicDir = config.publicDir;
     },
-    transformIndexHtml: (html) => {
-      if (isBuild) {
-        return transformHtml(html, { ...options, publicDir });
-      }
+    transformIndexHtml: {
+      enforce: "pre",
+      transform: async (html) => {
+        if (!isBuild) {
+          // use custom-elements to support HMR for external templates in dev
+          return {
+            html,
+            tags: [
+              {
+                tag: "script",
+                attrs: {
+                  type: "module",
+                },
+                injectTo: "body",
+                children: preamble.replace("__BASE__", base),
+              },
+            ],
+          };
+        }
 
-      // use custom-elements to support HMR for external templates in dev
-      return {
-        html,
-        tags: [
-          {
-            tag: "script",
-            attrs: {
-              type: "module",
-            },
-            injectTo: "body",
-            children: preamble.replace("__BASE__", base),
-          },
-        ],
-      };
+        const $ = cheerio.load(html);
+        const externalTemplates = await getExternalTemplates($, publicDir);
+
+        const inlineTemplates = $("template")
+          .map((_, template) => {
+            return {
+              name: template.attribs.id,
+              content: $(template).html(),
+            };
+          })
+          .toArray();
+
+        const templates = externalTemplates.concat(inlineTemplates);
+
+        compileTemplates(templates, $, options.flattenSlot);
+
+        let styles = [];
+        templates.forEach((template) => {
+          if (template.style) {
+            styles.push(compileStyle(template.style, template.name));
+          }
+        });
+
+        // cleanup: remove all inline templates
+        $("template").remove();
+        $("head").append(
+          `<style id="scoped-sloth">${styles.join("\n")}</style>`
+        );
+
+        const templateWithScripts = templates.filter((template) => {
+          return template.script;
+        });
+
+        if (templateWithScripts.length > 0) {
+          initScript += `import bootstrap from "${bootstrapScriptPath}"\n`;
+
+          templateWithScripts.forEach((template) => {
+            componentScriptMap.set(template.name, template.script);
+            initScript += `import ${toClassName(template.name)} from "${
+              componentsScriptPath + template.name
+            }";\n`;
+          });
+
+          initScript += "\n";
+
+          templateWithScripts.forEach((template) => {
+            initScript += `bootstrap("${template.name}", ${toClassName(
+              template.name
+            )})\n`;
+          });
+
+          return {
+            html: $.html(),
+            tags: [
+              {
+                tag: "script",
+                attrs: {
+                  type: "module",
+                  src: initScriptPath,
+                },
+                injectTo: "body",
+              },
+            ],
+          };
+        }
+
+        return $.html();
+      },
     },
     resolveId(id) {
-      if (id === runtimePublicPath) {
+      const isSlothRuntime = [
+        runtimePublicPath,
+        initScriptPath,
+        bootstrapScriptPath,
+      ].some((targetId) => {
+        return targetId === id;
+      });
+
+      if (isSlothRuntime || id.startsWith(componentsScriptPath)) {
         return id;
       }
     },
     load(id) {
-      if (id === runtimePublicPath) {
-        return runtimeCode;
+      switch (id) {
+        case runtimePublicPath:
+          return runtimeCode;
+        case bootstrapScriptPath:
+          return bootstrapCode;
+        case initScriptPath: {
+          return initScript;
+        }
+      }
+
+      if (id.startsWith(componentsScriptPath)) {
+        const componentName = id.replace(componentsScriptPath, "");
+        return componentScriptMap.get(componentName);
+      }
+    },
+    transform: (code, id) => {
+      if (id.startsWith(componentsScriptPath)) {
+        // we want to instantiate the class but HTMLElement is not a constructor
+        return code.replace(" extends HTMLElement", "");
       }
     },
     handleHotUpdate({ file, server }) {
@@ -73,44 +176,16 @@ export default (options: Options = {}): Plugin => {
   };
 };
 
-interface TransformHtmlOptions extends Options {
-  publicDir: string;
+// convert kebab-case to PascalCase
+function toClassName(name: string) {
+  return name.replace(/-(.)/g, (_, c) => c.toUpperCase());
 }
 
 interface Template {
   name: string;
   content: string;
   style?: string;
-}
-
-async function transformHtml(html: string, options: TransformHtmlOptions) {
-  const $ = cheerio.load(html);
-  const externalTemplates = await getExternalTemplates($, options.publicDir);
-
-  const inlineTemplates = $("template")
-    .map((_, template) => {
-      return {
-        name: template.attribs.id,
-        content: $(template).html(),
-      };
-    })
-    .toArray();
-
-  const templates = externalTemplates.concat(inlineTemplates);
-
-  compileTemplates(templates, $, options.flattenSlot);
-
-  let styles = [];
-  templates.forEach((template) => {
-    if (template.style) {
-      styles.push(compileStyle(template.style, template.name));
-    }
-  });
-  $("head").append(`<style id="scoped-sloth">${styles.join("\n")}</style>`);
-
-  // cleanup: remove all inline templates
-  $("template").remove();
-  return $.html().trim();
+  script?: string;
 }
 
 async function getExternalTemplates(
@@ -144,6 +219,7 @@ async function getExternalTemplates(
           name: $$("template").attr("id"),
           content: $$("template").html(),
           style: $$("style").html(),
+          script: $$("script").html(),
         };
 
         const imports = $$('link[rel="import"]');
