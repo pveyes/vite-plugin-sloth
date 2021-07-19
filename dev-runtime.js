@@ -115,11 +115,19 @@ if (hmr) {
     div.innerHTML = templateHTML;
     const template = div.querySelector("template");
     const style = div.querySelector("style");
-    /**
-     * @type {HTMLLinkElement}
-     */
-    const externalStyle = div.querySelector(`link[rel="stylesheet"]`);
     const script = div.querySelector(`script`);
+
+    await Promise.all(
+      Array.from(
+        template.content.querySelectorAll(`script[type="text/html"]`)
+      ).map(async (script) => {
+        const src = script.getAttribute("src");
+        // remove memory cache so we get fresh content in HMR
+        htmlIncludesCache.delete(src);
+        const html = await loadHTMLInclude(src);
+        script.parentElement.innerHTML = html.trim();
+      })
+    );
 
     /** @type {Array<Document|ShadowRoot>} */
     let roots = [document];
@@ -165,9 +173,7 @@ if (hmr) {
   document
     .querySelectorAll('script[type="text/html"]')
     .forEach(async (script) => {
-      const html = await fetch(script.getAttribute("src")).then((res) =>
-        res.text()
-      );
+      const html = await loadHTMLInclude(script.getAttribute("src"));
       script.parentElement.innerHTML = html.trim();
     });
 
@@ -263,17 +269,17 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
       deps.addEdge(fromName, target);
 
       const style = div.querySelector("style");
-      /**
-       * @type {HTMLLinkElement}
-       */
-      const externalStyle = div.querySelector(`link[rel="stylesheet"]`);
       const script = div.querySelector("script");
 
-      if (externalStyle) {
-        const path = externalStyle.getAttribute("href");
-        const target = resolveAbsolutePath(root, path);
-        const ext = await fetch(target).then((res) => res.text());
-      }
+      await Promise.all(
+        Array.from(
+          template.content.querySelectorAll(`script[type="text/html"]`)
+        ).map(async (script) => {
+          console.log("loading html includes", script.getAttribute("src"));
+          const html = await loadHTMLInclude(script.getAttribute("src"));
+          script.parentElement.innerHTML = html.trim();
+        })
+      );
 
       /**
        * @type {Array<HTMLLinkElement>}
@@ -299,6 +305,24 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
       });
     })
   );
+}
+
+const htmlIncludesCache = new Map();
+
+async function loadHTMLInclude(path) {
+  if (htmlIncludesCache.has(path)) {
+    return htmlIncludesCache.get(path);
+  }
+
+  const html = await fetch(path, {
+    headers: {
+      pragma: "no-cache",
+      "cache-control": "no-cache",
+    },
+  }).then((res) => res.text());
+
+  htmlIncludesCache.set(path, html);
+  return html;
 }
 
 /**
