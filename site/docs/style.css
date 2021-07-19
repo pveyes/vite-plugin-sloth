@@ -2,6 +2,16 @@
   @apply max-w-prose flex-grow-0;
 }
 
+.docs *[id]:not([id=""]) {
+  scroll-margin-top: 9rem;
+}
+
+@media (min-width: 768px) {
+  .docs *[id]:not([id=""]) {
+    scroll-margin-top: 7rem;
+  }
+}
+
 .docs code {
   @apply inline-block;
 }
