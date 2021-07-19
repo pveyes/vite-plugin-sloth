@@ -1,6 +1,6 @@
 <link rel="import" href="../sl-header.html" />
 <link rel="import" href="../sl-footer.html" />
-<link rel="import" href="./docs-sidebar.html" />
+<link rel="import" href="./docs-nav.html" />
 
 <template id="docs-layout" class="px-4">
   <sl-header></sl-header>
@@ -15,13 +15,56 @@
       justify-between
     "
   >
-    <docs-sidebar></docs-sidebar>
-    <main>
-      <slot name="content">{content}</slot>
-    </main>
+    <aside
+      class="
+        sidebar
+        hidden
+        md:block
+        sticky
+        top-28
+        w-64
+        pb-4
+        overflow-y-auto
+        flex-shrink-1 flex-grow
+        z-0
+      "
+    >
+      <h1 class="font-semibold text-xl mb-4">Documentation</h1>
+      <docs-nav></docs-nav>
+    </aside>
+    <div class="max-w-full">
+      <details
+        class="
+          block
+          md:hidden
+          sticky
+          bg-white
+          top-16
+          py-4
+          border-b
+          max-h-80
+          overflow-auto
+          mb-8
+          -mt-12
+        "
+      >
+        <summary>Menu</summary>
+        <docs-nav class="mt-4 ml-1"></docs-nav>
+      </details>
+      <main class="max-w-full">
+        <slot name="content">{content}</slot>
+      </main>
+    </div>
   </div>
   <sl-footer></sl-footer>
 </template>
+
+<style>
+  .sidebar {
+    height: max-content;
+    max-height: calc(100vh - 7rem);
+  }
+</style>
 
 <script type="module">
   export default class DocsLayout extends HTMLElement {

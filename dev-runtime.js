@@ -11,6 +11,11 @@
  */
 const templateCache = new Map();
 
+/**
+ * @type {Map<string, string>}
+ */
+const htmlIncludesCache = new Map();
+
 // @ts-ignore: property .hot is not available on ImportMeta
 const hmr = import.meta.hot;
 
@@ -306,8 +311,6 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
     })
   );
 }
-
-const htmlIncludesCache = new Map();
 
 async function loadHTMLInclude(path) {
   if (htmlIncludesCache.has(path)) {
