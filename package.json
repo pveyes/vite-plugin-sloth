@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-sloth",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "description": "Simple Static Site Generator using HTML template and slot element powered by Vite",
