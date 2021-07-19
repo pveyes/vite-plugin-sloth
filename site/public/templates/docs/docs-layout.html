@@ -17,6 +17,7 @@
   >
     <aside
       class="
+        sidebar
         hidden
         md:block
         sticky
@@ -57,6 +58,13 @@
   </div>
   <sl-footer></sl-footer>
 </template>
+
+<style>
+  .sidebar {
+    height: max-content;
+    max-height: calc(100vh - 7rem);
+  }
+</style>
 
 <script type="module">
   export default class DocsLayout extends HTMLElement {
