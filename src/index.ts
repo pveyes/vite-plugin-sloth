@@ -317,7 +317,10 @@ function compileTemplates(
       const wrapperElement = template.element || "div";
       const wrapper = $(`<${wrapperElement}></${wrapperElement}>`);
       wrapper.attr("data-template", template.name);
-      wrapper.attr("class", template.className);
+      wrapper.attr(
+        "class",
+        [el.attribs.class, template.className].filter(Boolean).join(" ")
+      );
       wrapper.append(content.trim());
       target.replaceWith(wrapper);
     });
