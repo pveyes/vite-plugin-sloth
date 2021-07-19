@@ -1,0 +1,22 @@
+<style>
+  :host {
+    flex-grow: 1;
+    flex-basis: 275px;
+  }
+
+  img {
+    margin: auto;
+  }
+</style>
+
+<template id="feature-set" data-element="li">
+  <div class="mb-3 text-center">
+    <slot name="illustration">{illustration}</slot>
+  </div>
+  <h3 class="text-xl mb-2">
+    <slot name="title">{title}</slot>
+  </h3>
+  <p class="text-gray-700 font-light font-system">
+    <slot name="description">{description}</slot>
+  </p>
+</template>

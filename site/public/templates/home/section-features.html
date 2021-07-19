@@ -1,0 +1,86 @@
+<link rel="import" href="./feature-set.html" />
+
+<template id="section-features" data-element="section" class="section">
+  <ul class="list-none p-0 flex flex-wrap flex-row gap-12 m-auto">
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/girl-clicking-on-tab@1x.svg"
+        alt="HTML that You Know and Love"
+      />
+      <span slot="title">❤️ HTML that You Know and Love</span>
+      <span slot="description"
+        >Sloth leverages native HTML elements like <code>template</code> and
+        <code>slot</code> to build reusable components. Use HTML import to
+        extract template and reuse across different pages.</span
+      >
+    </feature-set>
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/computer-08@1x.svg"
+        alt="Bypass Platform Limitation"
+      />
+      <span slot="title">🚥 Bypass Platform Limitation</span>
+      <span slot="description"
+        >Write Custom Elements in dev, serve native HTML elements in production.
+        No need to pre-render, add polyfill, or wait for browser support.
+        Everything is <del>crawlable</del> cURL-able.</span
+      >
+    </feature-set>
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/computer-work-5@1x.svg"
+        alt="Powered by Vite"
+      />
+      <span slot="title">⚡️ Powered by Vite</span>
+      <span slot="description"
+        >Sloth is implemented as a
+        <a href="https://vitejs.dev" class="link">Vite</a> plugin. This means
+        you get all the benefits like Lightning Fast HMR and Optimized Build.
+        The setup is just a single line of config!</span
+      >
+    </feature-set>
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/color-picker-2@1x.svg"
+        alt="Global and Scoped Style"
+        class="m-auto"
+      />
+      <span slot="title">🌏 Global <em>and</em> Scoped Style</span>
+      <span slot="description"
+        >Using CSS pre-processor? CSS Framework? Use global style, even if
+        you're writing Custom Elements. Prefer scoped styles? Don't worry, we
+        got this. Need both? Why not? Mix them up!</span
+      >
+    </feature-set>
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/research-and-data@1x.svg"
+        alt="Custom Elements API"
+      />
+      <span slot="title">⚙️ Custom Elements API</span>
+      <span slot="description"
+        >Need to add a sprinkle of JS? Use <code>connectedCallback</code> API to
+        add logic when the component is rendered. This works even in production,
+        without Shadow DOM.</span
+      >
+    </feature-set>
+    <feature-set>
+      <img
+        slot="illustration"
+        src="/assets/jogging@1x.svg"
+        alt="Blazing Fast Load Time"
+      />
+      <span slot="title">🔥 Blazing Fast Load Time</span>
+      <span slot="description"
+        >Unlike its sinful meaning, pages built using Sloth loads fast.
+        HTML-first means the output is just–you guessed it–HTML. Ship 0 JS by
+        default.</span
+      >
+    </feature-set>
+  </ul>
+</template>

@@ -1,0 +1,141 @@
+<link rel="import" href="./faq-entry.html" />
+
+<template id="section-faq" data-element="section" class="section">
+  <h2 class="section-title">Have Questions?</h2>
+  <p class="text-lg">Check out these FAQs below:</p>
+  <faq-entry>
+    <span slot="question">How does it work?</span>
+    <div slot="answer">
+      <p>
+        Built on top of Vite, Sloth borrows the similar philosophy:
+        <strong>use native API in dev, bundle in prod</strong>.
+      </p>
+      <p>
+        In dev, Sloth will automatically define Custom Elements by its template
+        <code>id</code>. If there's a style declaration, it will create a scoped
+        style using
+        <a
+          href="https://developers.google.com/web/updates/2019/02/constructable-stylesheets"
+          class="link"
+        >
+          Constructable Stylesheet</a
+        >, as well as forward any global styles from root page.
+      </p>
+      <p>
+        Sloth also leverages Vite Instant HMR to replace only templates that
+        changes if you're using
+        <a href="/docs/basic/#external-templates" class="link"
+          >external templates</a
+        >
+        via HTML import.
+      </p>
+      <p>
+        In build time, Sloth will replace all Custom Elements declaration with a
+        wrapper element. This wrapper element will be used to simulate scoped
+        style in production build, as we no longer have Shadow DOM.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question"
+      >Do I need to learn Custom Elements before using it?</span
+    >
+    <div slot="answer">
+      <p>
+        While Sloth uses native web platform features such as Custom Elements,
+        the similarities are mostly in syntax and usage. It's true that knowing
+        Custom Elements beforehand allows you to write more complex template
+        faster, but this docs alone should <em>hopefully</em> be enough resource
+        to get started.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question"
+      >HTML import is deprecated, will this work on browser C?</span
+    >
+    <div slot="answer">
+      <p>
+        Yes, because Sloth doesn't rely on HTML import. Sloth only borrows its
+        syntax to define template dependencies. In dev, Sloth fetch the
+        templates and construct dependencies graph manually in a
+        <a
+          href="https://en.wikipedia.org/wiki/Directed_acyclic_graph"
+          class="link"
+          >Directed Acyclic Graph</a
+        >. This graph will be used in HMR scenario where it only "re-renders"
+        templates that's changed instead of the entire page.
+      </p>
+      <p>
+        In build time, all HTML imports are removed and templates are rendered
+        inline. Think of it as bundling HTML, similar to how Vite bundles JS in
+        prod and serves each dependencies manually in dev. If you have inline
+        template declarations, those will be removed too.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question">Tell me something it can't do</span>
+    <div slot="answer">
+      <p>
+        Although it has a concept of variable/props, you can only pass a string.
+        This inherent limitation is due to the fact that Sloth is built on top
+        of HTML template.
+      </p>
+      <p>
+        There's no loop and conditionals, you can't arbitrarily set HTML
+        attributes or use ternary to produce different result. Those template
+        "features" are intentionally not supported because we don't want to
+        invent non-standard syntax like
+        <code>#{each}</code> and <code>{% if cond %}</code>, or evaluate
+        JavaScript expression inside template.
+      </p>
+      <p>
+        We want to rely purely on native HTML/Web features. This means Custom
+        Elements, template, slot, and data attribute. If you think this is a
+        deal-breaker, you're free to use other alternatives.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question"
+      >Does it support <strong>[insert CSS framework here]</strong>?</span
+    >
+    <div slot="answer">
+      <p>
+        If Vite supports it, there's no reason why Sloth doesn't. Just FYI, this
+        docs is built using
+        <a href="https://tailwindcss.com/" class="link">Tailwind</a>
+        and a small amount of scoped styles as well as global styles.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question">Can I use this with multiple HTML pages?</span>
+    <div slot="answer">
+      <p>
+        Yes, using
+        <a
+          href="https://vitejs.dev/guide/build.html#multi-page-app"
+          class="link"
+          >Vite multi page app</a
+        >. Same as this docs.
+      </p>
+    </div>
+  </faq-entry>
+  <faq-entry>
+    <span slot="question">Can I use prebuilt Custom Elements?</span>
+    <div slot="answer">
+      <p>
+        Yes if you use main entry point (JS that's referenced directly from an
+        <code>index.html</code>). If you import the dependencies in an external
+        template, it won't be transpiled but you probably can use something like
+        <a href="https://www.skypack.dev/" class="link">Skypack</a>.
+      </p>
+      <p>
+        Note that using real prebuilt Custom Elements means your content might
+        not be visible with JS disabled.
+      </p>
+    </div>
+  </faq-entry>
+</template>

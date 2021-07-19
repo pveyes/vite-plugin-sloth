@@ -1,0 +1,111 @@
+<template id="hero-text">
+  <h1
+    id="hero"
+    class="text-4xl sm:text-5xl lg:text-6xl mb-7 font-light font-sans"
+  >
+    Fresh take on static site generation, using
+    <strong
+      class="
+        font-semibold
+        bg-gradient-to-r
+        text-transparent
+        from-accent-500
+        to-amber-500
+      "
+      >HTML-first</strong
+    >
+    approach to build
+    <div class="inline-block">
+      <span class="underline with-cursor">websites</span>.
+    </div>
+  </h1>
+</template>
+
+<style>
+  @keyframes blink {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .with-cursor::after {
+    content: "";
+    display: inline-block;
+    position: relative;
+    top: 0.2em;
+    width: 4px;
+    height: 1em;
+    background-color: #cdcdcd;
+    opacity: 0;
+    animation: blink 0.5s infinite alternate;
+  }
+
+  h1 strong {
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+</style>
+
+<script type="module">
+  const buildTarget = [
+    "websites",
+    "portfolio",
+    "docs",
+    "showcase",
+    "blog",
+    "demo",
+    "tutorial",
+  ];
+
+  export default class HeroText extends HTMLElement {
+    connectedCallback() {
+      let targetId = 0;
+      const placeholder = this.root.querySelector("#hero span");
+
+      this.interval = setInterval(() => {
+        const previousText = buildTarget[targetId];
+        if (targetId === buildTarget.length - 1) {
+          targetId = 0;
+        } else {
+          targetId++;
+        }
+        typewrite(previousText, buildTarget[targetId], { placeholder });
+      }, 3500);
+    }
+
+    disconnectedCallback() {
+      clearInterval(this.interval);
+    }
+  }
+
+  let writeTimeout;
+  function typewrite(previousText, text, { length = 1, placeholder }) {
+    clearTimeout(writeTimeout);
+    if (previousText.length > 0) {
+      placeholder.textContent = previousText.slice(0, previousText.length - 1);
+      writeTimeout = setTimeout(() => {
+        typewrite(previousText.slice(0, previousText.length - 1), text, {
+          length,
+          placeholder,
+        });
+      }, 80);
+      return;
+    }
+
+    if (length === 1) {
+      // delay writing for a while after previous text is cleared
+      writeTimeout = setTimeout(() => {
+        placeholder.textContent = text.slice(0, length);
+        typewrite(previousText, text, { length: length + 1, placeholder });
+      }, 500);
+      return;
+    }
+
+    placeholder.textContent = text.slice(0, length);
+    if (length < text.length) {
+      writeTimeout = setTimeout(() => {
+        typewrite(previousText, text, { length: length + 1, placeholder });
+      }, 70);
+    }
+  }
+</script>

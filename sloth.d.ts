@@ -10,5 +10,3 @@ interface CSSStyleSheet {
 interface ShadowRoot {
   adoptedStyleSheets: CSSStyleSheet[];
 }
-
-interface PolymorphicElement extends Element, HTMLOrSVGElement {}

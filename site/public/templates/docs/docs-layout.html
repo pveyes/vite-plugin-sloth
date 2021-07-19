@@ -1,0 +1,55 @@
+<link rel="import" href="../sl-header.html" />
+<link rel="import" href="../sl-footer.html" />
+<link rel="import" href="./docs-sidebar.html" />
+
+<template id="docs-layout" class="px-4">
+  <sl-header></sl-header>
+  <div
+    class="
+      max-w-screen-lg
+      m-auto
+      flex flex-row
+      gap-0
+      mt-10
+      md:gap-10
+      justify-between
+    "
+  >
+    <docs-sidebar></docs-sidebar>
+    <main>
+      <slot name="content">{content}</slot>
+    </main>
+  </div>
+  <sl-footer></sl-footer>
+</template>
+
+<script type="module">
+  export default class DocsLayout extends HTMLElement {
+    connectedCallback() {
+      const confettiBtn = this.querySelector("#confetti");
+
+      if (confettiBtn) {
+        import("https://cdn.skypack.dev/canvas-confetti").then((mod) => {
+          confettiBtn.addEventListener("click", () => {
+            mod.default();
+          });
+        });
+      }
+
+      const hash = window.location.hash.substr(1);
+      if (hash) {
+        this.querySelector("#" + hash).scrollIntoView();
+      }
+
+      // remove markdown-only next & previous page
+      this.querySelectorAll("a").forEach((el) => {
+        if (
+          el.textContent === "Next Page" ||
+          el.textContent === "Previous Page"
+        ) {
+          el.parentNode.parentNode.removeChild(el.parentNode);
+        }
+      });
+    }
+  }
+</script>
