@@ -29,17 +29,17 @@
 }
 
 .docs blockquote {
-  @apply border-l-4 border-gray-200 pl-4 italic;
+  @apply border-l-4 border-gray-200 dark:border-gray-500 pl-4 italic;
 }
 
 /* we want to treat heading links differently */
 .docs p a {
-  @apply text-accent-500 hover:text-accent-600 border-dotted border-b hover:border-accent-600;
+  @apply text-accent-500 hover:text-accent-600 border-dotted border-b hover:border-accent-600 dark:border-gray-500 dark:text-accent-300 dark:hover:text-accent-400 dark:hover:border-accent-400;
 }
 
 .docs h2 a,
 .docs h3 a {
-  @apply border-dotted border-b hover:border-gray-600;
+  @apply border-dotted border-b hover:border-gray-600 dark:border-gray-700 dark:hover:border-gray-500;
 }
 
 .docs p,

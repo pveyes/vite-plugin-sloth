@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply text-gray-700 font-system;
+  @apply text-gray-700 font-system dark:bg-gray-900 dark:text-gray-200;
 }
 
 img {
@@ -16,7 +16,7 @@ pre code::after {
 }
 
 pre {
-  @apply py-4 px-4 mb-4 rounded-md overflow-x-auto;
+  @apply py-4 px-4 mb-4 rounded-md overflow-x-auto border dark:border-gray-700;
 }
 
 *[id]:not([id=""]) {
@@ -24,19 +24,19 @@ pre {
 }
 
 .active {
-  @apply text-accent-500;
+  @apply text-accent-500 dark:text-accent-400;
 }
 
 .link {
-  @apply text-accent-500 hover:text-accent-700;
+  @apply text-accent-500 dark:text-accent-300 hover:text-accent-700 dark:hover:text-accent-100;
 }
 
 .link-s {
-  @apply hover:text-accent-600;
+  @apply hover:text-accent-600 dark:hover:text-accent-200;
 }
 
 code {
-  @apply text-sm text-accent-500;
+  @apply text-sm text-accent-500 dark:text-accent-300;
 }
 
 p {
@@ -54,18 +54,6 @@ code::after {
 
 .section-title {
   @apply font-sans font-semibold text-left md:text-center text-2xl lg:text-3xl mb-8 lg:mb-12;
-}
-
-.lang-tag {
-  color: #ea7c60;
-}
-
-.lang-prop {
-  color: palegoldenrod;
-}
-
-.lang-string {
-  color: greenyellow;
 }
 
 html {
