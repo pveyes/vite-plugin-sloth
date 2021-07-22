@@ -105,6 +105,12 @@
     border-left: 1px solid #ddd;
   }
 
+  @media (prefers-color-scheme: dark) {
+    details[open] ul {
+      border-color: #434343;
+    }
+  }
+
   details[open] summary {
     margin-bottom: 0.5rem;
   }
@@ -129,6 +135,12 @@
     top: 0px;
     bottom: 0px;
     transition: transform 0.2s ease-in-out;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    details summary::before {
+      filter: invert();
+    }
   }
 
   details[open] summary::before {

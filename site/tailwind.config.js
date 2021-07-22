@@ -2,7 +2,7 @@ const colors = require("tailwindcss/colors");
 
 module.exports = {
   purge: ["./**/*.html", "./public/markdown/**/*.md"],
-  darkMode: false, // or 'media' or 'class'
+  darkMode: "media",
   theme: {
     colors: {
       white: colors.white,
