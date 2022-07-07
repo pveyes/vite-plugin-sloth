@@ -20,6 +20,7 @@
   ],
   "files": [
     "dist",
+    "bootstrap.js",
     "dev-runtime.js"
   ],
   "scripts": {
@@ -30,7 +31,6 @@
   "devDependencies": {
     "@types/jest": "^26.0.24",
     "@types/node": "^16.3.0",
-    "css": "^3.0.0",
     "husky": "^7.0.1",
     "jest": "^27.0.6",
     "lint-staged": "^11.0.0",
@@ -42,7 +42,9 @@
     "vite": "^2.4.1"
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.10"
+    "chalk": "^4.1.2",
+    "cheerio": "^1.0.0-rc.10",
+    "css": "^3.0.0"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
