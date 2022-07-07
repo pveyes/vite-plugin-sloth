@@ -654,12 +654,17 @@ function applyStyles(root, sheet, reset) {
     const style = document.styleSheets.item(i);
     const global = new CSSStyleSheet();
 
-    // if the style is not in the same origin, ignore it
+    // if the style is not in the same origin: append
+    // else: add rules to adoptedstylesheets
     if (
       style.href &&
       style.href.startsWith("http") &&
       !style.href.startsWith("http://localhost")
     ) {
+      const link = document.createElement('link');
+      link.setAttribute('rel', 'stylesheet');
+      link.setAttribute('href', style.href);
+      root.appendChild(link);
       continue;
     }
 
