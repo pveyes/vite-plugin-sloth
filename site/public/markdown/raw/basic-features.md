@@ -261,7 +261,7 @@ Sloth will guarantee that any Slot, Variables, and Scoped Styles will be initial
 
 ### Query Element
 
-To query element inside Custom Elements, you can use `this` instead of `document`:
+To query element inside Custom Elements, you can use `this.root` instead of `document`:
 
 ```html
 <template id="hello-world">
@@ -271,7 +271,26 @@ To query element inside Custom Elements, you can use `this` instead of `document
 <script type="module">
   export default class HelloWorld extends HTMLElement {
     connectedCallback() {
-      this.querySelector("h1").classList.add("mounted");
+      this.root.querySelector("h1").classList.add("mounted");
+    }
+  }
+</script>
+```
+
+You can also query element inside another shadow DOM by using `this`. For example, here we want to query a `span` inside `another-element`
+
+```html
+<link rel="import" href="../another-component.html" />
+
+<template id="hello-world">
+  <h1>It works!</h1>
+  <another-element></another-element>
+</template>
+
+<script type="module">
+  export default class HelloWorld extends HTMLElement {
+    connectedCallback() {
+      this.querySelector("span").style.display = "none";
     }
   }
 </script>
