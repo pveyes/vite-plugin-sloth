@@ -20,6 +20,7 @@
   ],
   "files": [
     "dist",
+    "bootstrap.js",
     "dev-runtime.js"
   ],
   "scripts": {
