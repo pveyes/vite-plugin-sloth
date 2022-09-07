@@ -1,14 +1,15 @@
 import fs, { promises as fsp } from "fs";
 import path from "path";
-import { Plugin } from "vite";
+import { Plugin, createLogger } from "vite";
 import type { Element as DOMElement } from "domhandler";
 import cheerio, { Cheerio, CheerioAPI } from "cheerio";
-import chalk from "chalk";
 import css from "css";
 
 interface FlattenSlotFunc {
   (node: DOMElement): boolean;
 }
+
+const logger = createLogger('info', { prefix: 'sloth' });
 
 type FlattenSlotOptions = boolean | string[] | FlattenSlotFunc;
 
@@ -328,7 +329,7 @@ function compileTemplates(
     isAttributeElements.each((_, el) => {
       const variables = getVariables(el);
       const target = $(el);
-      console.log("compiling PE", template.name);
+      logger.info(`compiling polymorphic element ${template.name}`);
       const content = compileContent(target, template.content, {
         name: template.name,
         variables,
@@ -380,7 +381,7 @@ function compileStyle(cssText: string, id: string) {
   const ast = css.parse(cssText, { source: `${id}.scoped.css` });
   // TODO: prefix keyframe?
   ast.stylesheet.rules.forEach((rule) => {
-    if (rule.type === "rule") {
+    if ('selectors' in rule && rule.type === "rule") {
       rule.selectors = rule.selectors.map((selector: string) => {
         const wrapperPrefix = `[data-template="${id}"]`;
         // TODO: throw error on :host() and :host-context() selector
@@ -463,21 +464,7 @@ function compileContent(
               $el.attr(targetAttribute, variables[varKey]);
             }
           } else {
-            // log warning
-            // vite uses writeLine without newline when logging rendered chunk
-            // @see https://github.com/vitejs/vite/blob/eb66b4350c635fb4f2ef2e8a9eb50958cde73743/packages/vite/src/node/plugins/reporter.ts#L126
-            if (!newLineInserted) {
-              newLineInserted = true;
-              console.log();
-            }
-
-            console.warn(
-              chalk.yellowBright("[sloth]") +
-                " " +
-                chalk.yellow(
-                  `Template \`${options.name}\` requires \`data-var-${varKey}\` but it's missing`
-                )
-            );
+            logger.warn(`Template \`${options.name}\` requires \`data-var-${varKey}\` but it's missing`)
             $el.attr(key, null);
           }
         });

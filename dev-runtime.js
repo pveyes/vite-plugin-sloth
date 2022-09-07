@@ -122,9 +122,14 @@ if (hmr) {
     const style = div.querySelector("style");
     const script = div.querySelector(`script`);
 
+    if (!template) {
+      console.warn('Updated HMR from template doesn\'t contain a template tag', data);
+      return;
+    }
+
     await Promise.all(
       Array.from(
-        template.content.querySelectorAll(`script[type="text/html"]`)
+        template.content.querySelectorAll('script[type="text/html"]')
       ).map(async (script) => {
         const src = script.getAttribute("src");
         // remove memory cache so we get fresh content in HMR
@@ -237,8 +242,8 @@ function resolveAbsolutePath(root, path) {
 
 /**
  * @param {HTMLLinkElement[]} paths
- * @param {string?} root
- * @param {string?} fromName
+ * @param {string} root
+ * @param {string} fromName
  */
 function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
   return Promise.all(
@@ -246,6 +251,10 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
       // use getAttribute('href') instead of .href so browser doesn't transform
       // relative directory syntax
       const path = link.getAttribute("href");
+      if (!path) {
+        throw new Error('Missing href attribute on link tag');
+      }
+
       const target = resolveAbsolutePath(root, path);
 
       const vertex = deps.get(target);
@@ -280,8 +289,18 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
         Array.from(
           template.content.querySelectorAll(`script[type="text/html"]`)
         ).map(async (script) => {
-          console.log("loading html includes", script.getAttribute("src"));
-          const html = await loadHTMLInclude(script.getAttribute("src"));
+          const htmlIncludeSrc = script.getAttribute("src")
+          if (!htmlIncludeSrc) {
+            console.warn("Empty src for html includes in", script)
+            return;
+          }
+
+          console.log("loading html includes", htmlIncludeSrc);
+          const html = await loadHTMLInclude(htmlIncludeSrc);
+          if (!script.parentElement) {
+            // never happen, but 🤷‍♂️
+            return;
+          }
           script.parentElement.innerHTML = html.trim();
         })
       );
@@ -312,8 +331,14 @@ function initExternalTemplates(paths, root = "/", fromName = ROOT_VERTEX_NAME) {
   );
 }
 
+/**
+ * 
+ * @param {string} path 
+ * @returns {Promise<string>}
+ */
 async function loadHTMLInclude(path) {
   if (htmlIncludesCache.has(path)) {
+    // @ts-expect-error https://github.com/microsoft/TypeScript/issues/13086
     return htmlIncludesCache.get(path);
   }
 
@@ -386,16 +411,17 @@ function renderPolymorphicElement(el, templateId) {
   tempRoot.appendChild(fragment.cloneNode(true));
   bindVariables(tempRoot, vars, templateId);
 
-  let sheet;
+  let sheet = null;
   if (style) {
     sheet = new CSSStyleSheet();
     sheet.replaceSync(style.innerHTML);
   }
 
   if (el.shadowRoot) {
+    const shadow = el.shadowRoot;
     // replace all child nodes with tempRoot children
     tempRoot.childNodes.forEach((child, i) => {
-      el.shadowRoot.replaceChild(child, el.shadowRoot.children[i]);
+      shadow.replaceChild(child, shadow.children[i]);
     });
     applyStyles(el.shadowRoot, sheet);
     mergeAttributes(el, attributes);
@@ -441,6 +467,7 @@ async function createCustomElement(templateId) {
     constructor() {
       super();
       this.root = null;
+      this.sheet = null;
       this.vars = {};
     }
 
@@ -644,7 +671,7 @@ function getNativeDisplay(tagName) {
  * merge root style & scoped style if any, no need to separate between the two
  * this is not web components
  * @param {ShadowRoot} root
- * @param {CSSStyleSheet=} sheet
+ * @param {CSSStyleSheet | null} sheet
  * @param {CSSStyleSheet=} reset
  */
 function applyStyles(root, sheet, reset) {
@@ -652,6 +679,10 @@ function applyStyles(root, sheet, reset) {
 
   for (let i = 0; i < document.styleSheets.length; i++) {
     const style = document.styleSheets.item(i);
+    if (!style) {
+      continue;
+    }
+
     const global = new CSSStyleSheet();
 
     // if the style is not in the same origin: append
@@ -669,7 +700,11 @@ function applyStyles(root, sheet, reset) {
     }
 
     for (let j = style.cssRules.length - 1; j > 0; j--) {
-      global.insertRule(style.cssRules.item(j).cssText);
+      const cssRule = style.cssRules.item(i);
+      if (!cssRule) {
+        continue;
+      }
+      global.insertRule(cssRule.cssText);
     }
 
     adoptedStyleSheets.push(global);
@@ -689,13 +724,15 @@ function applyStyles(root, sheet, reset) {
 /**
  * @callback visitCallback
  * @param {Vertex} vertex
- * @param {string[]?} path
+ * @param {string[]} path
  */
 
 /**
  *
  * @param {Vertex} vertex
  * @param {visitCallback} cb
+ * @param {Object} visited
+ * @param {string[]} path
  */
 function visitDAG(vertex, cb, visited = {}, path = []) {
   const { name, incoming, incomingNames } = vertex;

@@ -93,10 +93,10 @@ test("no trace of variable bindings in build output", () => {
 test("compile scoped style by adding template id prefix", () => {
   const style = $index("style#scoped-sloth");
   const ast = css.parse(style.html());
-  expect(ast.stylesheet.rules[1].selectors[0]).toMatchInlineSnapshot(
+  expect(ast.stylesheet.rules[2].selectors[0]).toMatchInlineSnapshot(
     `"[data-template=\\"hero-text\\"] .with-cursor::after"`
   );
-  expect(ast.stylesheet.rules[2].selectors[0]).toMatchInlineSnapshot(
+  expect(ast.stylesheet.rules[3].selectors[0]).toMatchInlineSnapshot(
     `"[data-template=\\"hero-text\\"] h1 strong"`
   );
 });
